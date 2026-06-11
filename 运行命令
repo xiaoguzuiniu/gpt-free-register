@@ -1,0 +1,1 @@
+python .\main.py -n 10 --workers 3 --continue-on-fail

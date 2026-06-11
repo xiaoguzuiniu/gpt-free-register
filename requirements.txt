@@ -1,0 +1,3 @@
+curl_cffi>=0.7.0
+pyotp>=2.9.0
+flask>=3.0.0

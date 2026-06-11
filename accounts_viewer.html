@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>账号查看器 - 2026-06-11T20:30:14</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #eef3f8;
+      --surface: #ffffff;
+      --soft: #f7f9fc;
+      --text: #172033;
+      --muted: #667085;
+      --line: #d9e2ec;
+      --blue: #2563eb;
+      --green: #16803c;
+      --red: #c2413a;
+      --amber: #b7791f;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 22px 28px;
+      background: #101827;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 28px; }
+    .meta { margin-top: 6px; color: #b8c7d9; font-size: 13px; }
+    .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stat {
+      min-width: 116px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+    }
+    .stat span { display: block; color: #b8c7d9; font-size: 12px; }
+    .stat strong { display: block; margin-top: 4px; font-size: 18px; }
+    main { width: min(1500px, calc(100vw - 32px)); margin: 16px auto 30px; display: grid; gap: 16px; }
+    .toolbar, section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 8px 22px rgba(15,23,42,.06);
+    }
+    .toolbar { padding: 14px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .search { min-width: min(520px, 100%); flex: 1; }
+    input {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 12px;
+      font: inherit;
+    }
+    .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      min-height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      padding: 0 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { background: var(--soft); }
+    button.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+    button.good { border-color: #2f855a; background: #edf8f1; color: #166534; }
+    button:disabled { color: #98a2b3; cursor: not-allowed; background: #f2f4f7; }
+    .head { padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--soft); }
+    .head p { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #edf1f5; text-align: left; white-space: nowrap; vertical-align: middle; }
+    th { position: sticky; top: 0; background: #fbfcfe; color: #475467; z-index: 1; font-size: 12px; }
+    tr:hover td { background: #fbfdff; }
+    .main-cell { font-weight: 700; }
+    .sub-cell { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .mono { font-family: ui-monospace, "JetBrains Mono", Consolas, monospace; font-size: 12px; }
+    .muted { color: var(--muted); }
+    .pill { display: inline-flex; min-width: 48px; justify-content: center; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .status-available { color: var(--blue); background: #eef4ff; }
+    .status-used { color: #475467; background: #f2f4f7; }
+    .status-failed { color: var(--red); background: #fff0ef; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    #toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #101827;
+      color: #fff;
+      box-shadow: 0 14px 30px rgba(15,23,42,.24);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 820px) {
+      header { align-items: flex-start; }
+      .stats { width: 100%; }
+      .stat { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>账号查看器</h1>
+    <p class="meta">静态快照，无需启动 Web Server。生成时间：<span id="generated"></span></p>
+  </div>
+  <div class="stats">
+    <div class="stat"><span>已完成</span><strong id="statAccounts">0</strong></div>
+    <div class="stat"><span>邮箱总数</span><strong id="statOutlook">0</strong></div>
+    <div class="stat"><span>可用邮箱</span><strong id="statAvailable">0</strong></div>
+  </div>
+</header>
+<main>
+  <div class="toolbar">
+    <div class="search"><input id="q" placeholder="搜索邮箱、token、clientId、状态"></div>
+    <div class="buttons">
+      <button class="primary" id="copyAllTokens">复制全部 Token</button>
+      <button class="good" id="copyAllLines">复制全部整行</button>
+      <button id="copyAllEmails">复制全部邮箱素材</button>
+    </div>
+  </div>
+  <section>
+    <div class="head">
+      <h2>已完成账号</h2>
+      <p>整行格式：邮箱----密码----clientId----邮箱刷新令牌----accessToken----totpSecret（如有）</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>邮箱</th><th>来源</th><th>Token</th><th>2FA</th><th>创建时间</th><th>操作</th></tr></thead>
+        <tbody id="accountsBody"></tbody>
+      </table>
+    </div>
+  </section>
+  <section>
+    <div class="head">
+      <h2>邮箱素材库</h2>
+      <p>原始格式：邮箱----密码----clientId----邮箱刷新令牌；注册完成后可直接复制对应 Token 或整行。</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>邮箱</th><th>状态</th><th>Token</th><th>已用时间</th><th>操作</th></tr></thead>
+        <tbody id="outlookBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+<script id="snapshot" type="application/json">{"generated_at": "2026-06-11T20:30:14", "accounts": [{"id": 2, "email": "uutwilt55181@outlook.com", "created_at": "2026-06-11T20:30:14", "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc4MjA0NTAwNiwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6IjZjY2FiN2MyLWI0YWItNGIyYS04ZmRmLWFjYjZjMGQ3OTk0YiIsImNoYXRncHRfYWNjb3VudF91c2VyX2lkIjoidXNlci0wejVlQ0xTV0ZtYUpFWkhnc3pyaWZuU29fXzZjY2FiN2MyLWI0YWItNGIyYS04ZmRmLWFjYjZjMGQ3OTk0YiIsImNoYXRncHRfY29tcHV0ZV9yZXNpZGVuY3kiOiJub19jb25zdHJhaW50IiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJmcmVlIiwiY2hhdGdwdF91c2VyX2lkIjoidXNlci0wejVlQ0xTV0ZtYUpFWkhnc3pyaWZuU28iLCJpc19zaWdudXAiOnRydWUsInVzZXJfaWQiOiJ1c2VyLTB6NWVDTFNXRm1hSkVaSGdzenJpZm5TbyJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJ1dXR3aWx0NTUxODFAb3V0bG9vay5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sImlhdCI6MTc4MTE4MTAwNiwiaXNzIjoiaHR0cHM6Ly9hdXRoLm9wZW5haS5jb20iLCJqdGkiOiI2MzgzMmM3Ny0yNmQxLTQ3NjYtYWZlYy1mNTZjMjNlZDdiNTEiLCJuYmYiOjE3ODExODEwMDYsInB3ZF9hdXRoX3RpbWUiOjE3ODExODEwMDE4OTAsInNjcCI6WyJvcGVuaWQiLCJlbWFpbCIsInByb2ZpbGUiLCJvZmZsaW5lX2FjY2VzcyIsIm1vZGVsLnJlcXVlc3QiLCJtb2RlbC5yZWFkIiwib3JnYW5pemF0aW9uLnJlYWQiLCJvcmdhbml6YXRpb24ud3JpdGUiXSwic2Vzc2lvbl9pZCI6ImF1dGhzZXNzX1lZR0dmUHVGNkZFSXQ3RjhpZ1BHcjZyeCIsInNsIjp0cnVlLCJzdWIiOiJhdXRoMHx6UWN1SmtMODh5cjN1MG9SbXpybUNOeFAifQ.oQMWjE_qAnpIRXcTqWZw-1VPi3bWzTHZ6I7jGbOuAjLtiKppxcMgrC070hh8rq5zT6n3OFH-Od7nFHgh0yAZX4vrSSl53Ylgeg0oeBWbxZqLSAWoTBNkN1B_FePLUO6Zteq9tj5Cqq2US2ObgmdwR6mQyitPJw0gUX_WDam1gro2GVIrkiA5JAIe3azmDI0i0eYOh1iY49JF5BfK39AX194VyVGgKgSng81xIyGf7DJUHcUo8x2TlKmduAF5z76tgLHgsBz8IyVGrsjhjtyjRchCOp2mlZgAMQaKag_PzM2tgeMxSgRgmPnKowVqHmxk7g583_KKx8NDUO-3Rq0Bg4xltINO3wWhecl9kZYE9GBMwxTrbrnG4PmwVUtzSTgkoruJ0VipdS6c8YXVFhvWs2susdqYMg_HEpoEBTFxiql_ZO9BLBh3aun5m9Uirn_-5DE63ZAJgqrcdpH3ECJMDFCZknmgEcKJiYE5ULeQP8xf9IfDBmXyh97ZTCyPNk40CUriqvWlCo48F8vWFfOk-5FgcavvcX9YA6Cb5zxZENH3suvTKcpMMkjvIpFLu2gGU3A8QGgb_MBWvWvErnBPayT6iQQkJDfRvNNIuLMox_sz9AZtXRj2oWYZymuwlMZVJdv1mhY2hArfo0gZ_YMbwAMlag1iTvvMhYTvDDpT44c", "totp_secret": null, "user_id": "user-0z5eCLSWFmaJEZHgszrifnSo", "user_name": "Urlwo Qaqwgoo", "plan_type": "free", "expires_at": "2026-09-09T12:30:11.913Z", "device_id": "011d484a-9c65-4133-913b-064c20d195ce", "proxy_used": "http://127.0.0.1:7897", "email_source": "outlook", "extra_json": "{\"user\": {\"id\": \"user-0z5eCLSWFmaJEZHgszrifnSo\", \"name\": \"Urlwo Qaqwgoo\", \"email\": \"uutwilt55181@outlook.com\", \"idp\": \"auth0\", \"iat\": 1781181006, \"mfa\": false}, \"account\": {\"id\": \"6ccab7c2-b4ab-4b2a-8fdf-acb6c0d7994b\", \"planType\": \"free\", \"structure\": \"personal\", \"isConversationClassifierEnabledForWorkspace\": true, \"isFinservEnabledWorkspace\": false, \"isFedrampCompliantWorkspace\": false, \"isDelinquent\": false, \"residencyRegion\": \"no_constraint\", \"computeResidency\": \"no_constraint\"}, \"expires\": \"2026-09-09T12:30:11.913Z\", \"device_id\": \"011d484a-9c65-4133-913b-064c20d195ce\"}", "updated_at": "2026-06-11T20:30:14", "password": "xuxby001213", "client_id": "9e5f94bc-e8a4-4e73-b8be-63364c29d753", "refresh_token": "M.C534_SN1.0.U.MsaArtifacts.-ClgMmSGCI6qQIqK6DIbyGI8MimywZ5vIZNLg5fO7Kc30VdwkpQ9xFI7QzaY7sc2dZHoO2uwvHluk1SZks*mjtJ1fEd9WWOgR4So1UuxvekZslKqMRWA!rN*0bhjL7l3z6DEplaiK43Lr4OXAx0WXAjACFc3SbTlXCzrmdgh8z5ZwoQ3raT4PejlzAqYAY4gHt3YcBsszqkf3mAdtRPUSbApJHv!D3B8OiAihfu1RczipS9rQkIa50gxMDrQYWkW!r6tdMEQBnQ8t1iYrfrpKwBR8OXs06CohDafAe!MUSnm819031jQLR*HTA66PaQ3HSZzb!QyNs82buRu!kGWwzOaaN8y9YeyRekgFt1of!1*i1gN9eWI2c9mHd*l86LJcmvexanszJXfWdxBnmrVHeldhHO7U6DFyw3CY9uOCj5EOMwvgBvlRq108PEcWIWg7tw$$", "original_email_line": "uutwilt55181@outlook.com----xuxby001213----9e5f94bc-e8a4-4e73-b8be-63364c29d753----M.C534_SN1.0.U.MsaArtifacts.-ClgMmSGCI6qQIqK6DIbyGI8MimywZ5vIZNLg5fO7Kc30VdwkpQ9xFI7QzaY7sc2dZHoO2uwvHluk1SZks*mjtJ1fEd9WWOgR4So1UuxvekZslKqMRWA!rN*0bhjL7l3z6DEplaiK43Lr4OXAx0WXAjACFc3SbTlXCzrmdgh8z5ZwoQ3raT4PejlzAqYAY4gHt3YcBsszqkf3mAdtRPUSbApJHv!D3B8OiAihfu1RczipS9rQkIa50gxMDrQYWkW!r6tdMEQBnQ8t1iYrfrpKwBR8OXs06CohDafAe!MUSnm819031jQLR*HTA66PaQ3HSZzb!QyNs82buRu!kGWwzOaaN8y9YeyRekgFt1of!1*i1gN9eWI2c9mHd*l86LJcmvexanszJXfWdxBnmrVHeldhHO7U6DFyw3CY9uOCj5EOMwvgBvlRq108PEcWIWg7tw$$", "copy_line": "uutwilt55181@outlook.com----xuxby001213----9e5f94bc-e8a4-4e73-b8be-63364c29d753----M.C534_SN1.0.U.MsaArtifacts.-ClgMmSGCI6qQIqK6DIbyGI8MimywZ5vIZNLg5fO7Kc30VdwkpQ9xFI7QzaY7sc2dZHoO2uwvHluk1SZks*mjtJ1fEd9WWOgR4So1UuxvekZslKqMRWA!rN*0bhjL7l3z6DEplaiK43Lr4OXAx0WXAjACFc3SbTlXCzrmdgh8z5ZwoQ3raT4PejlzAqYAY4gHt3YcBsszqkf3mAdtRPUSbApJHv!D3B8OiAihfu1RczipS9rQkIa50gxMDrQYWkW!r6tdMEQBnQ8t1iYrfrpKwBR8OXs06CohDafAe!MUSnm819031jQLR*HTA66PaQ3HSZzb!QyNs82buRu!kGWwzOaaN8y9YeyRekgFt1of!1*i1gN9eWI2c9mHd*l86LJcmvexanszJXfWdxBnmrVHeldhHO7U6DFyw3CY9uOCj5EOMwvgBvlRq108PEcWIWg7tw$$----eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc4MjA0NTAwNiwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6IjZjY2FiN2MyLWI0YWItNGIyYS04ZmRmLWFjYjZjMGQ3OTk0YiIsImNoYXRncHRfYWNjb3VudF91c2VyX2lkIjoidXNlci0wejVlQ0xTV0ZtYUpFWkhnc3pyaWZuU29fXzZjY2FiN2MyLWI0YWItNGIyYS04ZmRmLWFjYjZjMGQ3OTk0YiIsImNoYXRncHRfY29tcHV0ZV9yZXNpZGVuY3kiOiJub19jb25zdHJhaW50IiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJmcmVlIiwiY2hhdGdwdF91c2VyX2lkIjoidXNlci0wejVlQ0xTV0ZtYUpFWkhnc3pyaWZuU28iLCJpc19zaWdudXAiOnRydWUsInVzZXJfaWQiOiJ1c2VyLTB6NWVDTFNXRm1hSkVaSGdzenJpZm5TbyJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJ1dXR3aWx0NTUxODFAb3V0bG9vay5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sImlhdCI6MTc4MTE4MTAwNiwiaXNzIjoiaHR0cHM6Ly9hdXRoLm9wZW5haS5jb20iLCJqdGkiOiI2MzgzMmM3Ny0yNmQxLTQ3NjYtYWZlYy1mNTZjMjNlZDdiNTEiLCJuYmYiOjE3ODExODEwMDYsInB3ZF9hdXRoX3RpbWUiOjE3ODExODEwMDE4OTAsInNjcCI6WyJvcGVuaWQiLCJlbWFpbCIsInByb2ZpbGUiLCJvZmZsaW5lX2FjY2VzcyIsIm1vZGVsLnJlcXVlc3QiLCJtb2RlbC5yZWFkIiwib3JnYW5pemF0aW9uLnJlYWQiLCJvcmdhbml6YXRpb24ud3JpdGUiXSwic2Vzc2lvbl9pZCI6ImF1dGhzZXNzX1lZR0dmUHVGNkZFSXQ3RjhpZ1BHcjZyeCIsInNsIjp0cnVlLCJzdWIiOiJhdXRoMHx6UWN1SmtMODh5cjN1MG9SbXpybUNOeFAifQ.oQMWjE_qAnpIRXcTqWZw-1VPi3bWzTHZ6I7jGbOuAjLtiKppxcMgrC070hh8rq5zT6n3OFH-Od7nFHgh0yAZX4vrSSl53Ylgeg0oeBWbxZqLSAWoTBNkN1B_FePLUO6Zteq9tj5Cqq2US2ObgmdwR6mQyitPJw0gUX_WDam1gro2GVIrkiA5JAIe3azmDI0i0eYOh1iY49JF5BfK39AX194VyVGgKgSng81xIyGf7DJUHcUo8x2TlKmduAF5z76tgLHgsBz8IyVGrsjhjtyjRchCOp2mlZgAMQaKag_PzM2tgeMxSgRgmPnKowVqHmxk7g583_KKx8NDUO-3Rq0Bg4xltINO3wWhecl9kZYE9GBMwxTrbrnG4PmwVUtzSTgkoruJ0VipdS6c8YXVFhvWs2susdqYMg_HEpoEBTFxiql_ZO9BLBh3aun5m9Uirn_-5DE63ZAJgqrcdpH3ECJMDFCZknmgEcKJiYE5ULeQP8xf9IfDBmXyh97ZTCyPNk40CUriqvWlCo48F8vWFfOk-5FgcavvcX9YA6Cb5zxZENH3suvTKcpMMkjvIpFLu2gGU3A8QGgb_MBWvWvErnBPayT6iQQkJDfRvNNIuLMox_sz9AZtXRj2oWYZymuwlMZVJdv1mhY2hArfo0gZ_YMbwAMlag1iTvvMhYTvDDpT44c"}, {"id": 1, "email": "ChristinLeno5020@outlook.com", "created_at": "2026-06-11T20:27:37", "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc4MjA0NDg1MCwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6IjI0NTdhYWM5LWJkNmItNDUzNi1iMDMzLWFmZTMzNjc1NTgwZCIsImNoYXRncHRfYWNjb3VudF91c2VyX2lkIjoidXNlci1hSEVDVGlkbWFvVXJUdjV2dEtXRUVwWk1fXzI0NTdhYWM5LWJkNmItNDUzNi1iMDMzLWFmZTMzNjc1NTgwZCIsImNoYXRncHRfY29tcHV0ZV9yZXNpZGVuY3kiOiJub19jb25zdHJhaW50IiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJmcmVlIiwiY2hhdGdwdF91c2VyX2lkIjoidXNlci1hSEVDVGlkbWFvVXJUdjV2dEtXRUVwWk0iLCJpc19zaWdudXAiOnRydWUsInVzZXJfaWQiOiJ1c2VyLWFIRUNUaWRtYW9VclR2NXZ0S1dFRXBaTSJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJDaHJpc3Rpbkxlbm81MDIwQG91dGxvb2suY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJpYXQiOjE3ODExODA4NDksImlzcyI6Imh0dHBzOi8vYXV0aC5vcGVuYWkuY29tIiwianRpIjoiMzBhYWJmOWItNmRiNC00NWQ5LTg0ZDItNzI4OGEyMWQxMGMzIiwibmJmIjoxNzgxMTgwODQ5LCJwd2RfYXV0aF90aW1lIjoxNzgxMTgwODQ1ODI0LCJzY3AiOlsib3BlbmlkIiwiZW1haWwiLCJwcm9maWxlIiwib2ZmbGluZV9hY2Nlc3MiLCJtb2RlbC5yZXF1ZXN0IiwibW9kZWwucmVhZCIsIm9yZ2FuaXphdGlvbi5yZWFkIiwib3JnYW5pemF0aW9uLndyaXRlIl0sInNlc3Npb25faWQiOiJhdXRoc2Vzc184b2RkaEw4dGNKQVdxMWI1S3JLS3VEaWciLCJzbCI6dHJ1ZSwic3ViIjoiYXV0aDB8R1ZBRERGU1JBc3N2QnJBQlJGZzBWMDdEIn0.E2xsdcDMm3ryycZE21cTl82j7HA6LClHQ4Brx8lqBj5Hpkmr17WuC83O8uqUaGDecpwbpsGSmFwvBYetsKeyl1nxPfZLU20oWD3gMZLiFYnTCA2yotede9kd70mRjVDL8dcuTuqSEeuDhCVC-X1aWlcTv2W6kY-WAigiW0AqThQo-04uczaIMiXdqg3WHsfMu8BnkUJd7ydeNdA6XvlALUJu6SjYUlBRI7-0N3Hl5PSUGYga3XXdRFuWKX5XOcvSYvIPtnv8FHWL9JoX3GV6Be8rO6oLzvvspx5HJ5RtvFLX-pUOPgQ3UCrnqpzd097QQBlDM6IhAfwz32usalt2JnkvJr8GKDsyhA1Cga4Qamo1zfItEUrOtGbd5dFNtg5ors6zQtSTWXfH-CnLHJZroKpgOjzNwDE7Ed2dtnedwub4l-pd4ZRyhoAXyzudRlmhPCTJh5qU5pMd4-gMgA1ckw4r9rQnXnA98rCaTqw64bB-tc3524p4fKg4DJfT__-Kw4ZSHyXC3kgLNUYtHlY7OGQiTfjTVU3jeCcxtLrTshGPk-t2dcixoHQGE6Q4IUhCogCsRwlGPh_Rro0qE7IHxc6Xk7sUz_D_f2atMSQdmsW15C8S88GVsc5UPZpAfQfVmQJSeYMTWYT_d0ruzOhH-JeIF_Gfm64CelDSKZ-1S6Q", "totp_secret": null, "user_id": "user-aHECTidmaoUrTv5vtKWEEpZM", "user_name": "Knie Xpkdw", "plan_type": "free", "expires_at": "2026-09-09T12:27:35.390Z", "device_id": "eae623db-1871-4013-839b-7efc887969b2", "proxy_used": "http://127.0.0.1:7897", "email_source": "outlook", "extra_json": "{\"user\": {\"id\": \"user-aHECTidmaoUrTv5vtKWEEpZM\", \"name\": \"Knie Xpkdw\", \"email\": \"ChristinLeno5020@outlook.com\", \"idp\": \"auth0\", \"iat\": 1781180849, \"mfa\": false}, \"account\": {\"id\": \"2457aac9-bd6b-4536-b033-afe33675580d\", \"planType\": \"free\", \"structure\": \"personal\", \"isConversationClassifierEnabledForWorkspace\": true, \"isFinservEnabledWorkspace\": false, \"isFedrampCompliantWorkspace\": false, \"isDelinquent\": false, \"residencyRegion\": \"no_constraint\", \"computeResidency\": \"no_constraint\"}, \"expires\": \"2026-09-09T12:27:35.390Z\", \"device_id\": \"eae623db-1871-4013-839b-7efc887969b2\"}", "updated_at": "2026-06-11T20:27:37", "password": "3qP3kEjF", "client_id": "9e5f94bc-e8a4-4e73-b8be-63364c29d753", "refresh_token": "M.C506_BAY.0.U.MsaArtifacts.-Cr61hObZb12NgdNkwZD2XpB2PcyL1icp2ohqDhsRAEhuTQiD9ub37RPAJeyaNAn88MQBRz6PHBEcYQUF7om0t*DrMud42WVuWR6pdgLNkZ29SPbvhbPTu2W7n!!GlBXUKQnV14lcjNpDUeqNoMXXAnAo1PiQVNbwX0rHCuZtArsL7qdAHEM3v2WwlYr55BRh6q*eDJFX5OY03AmaTFduteiUVLed36**WHffxU5LHaLGm9mq9tJRopOQtH3yMH!hK*ctldGSZ3k7ThYh4PXWd17sAJOtTG!TIpbK1t74aHZnv69ncD8G9aeL19z5QNYyQrn48PMQ1ty8p29m7jXHj8r56iNqmBHosLhlay*76rVXJBmYJqMoOGmoeeXUlbxfIO1kFkbkvCaiZN!f5vCnQ3EMImvRFRg3YA9n5PWY9rrrTqd5z7dgQSH*Pgyxcn6FuA$$", "original_email_line": "ChristinLeno5020@outlook.com----3qP3kEjF----9e5f94bc-e8a4-4e73-b8be-63364c29d753----M.C506_BAY.0.U.MsaArtifacts.-Cr61hObZb12NgdNkwZD2XpB2PcyL1icp2ohqDhsRAEhuTQiD9ub37RPAJeyaNAn88MQBRz6PHBEcYQUF7om0t*DrMud42WVuWR6pdgLNkZ29SPbvhbPTu2W7n!!GlBXUKQnV14lcjNpDUeqNoMXXAnAo1PiQVNbwX0rHCuZtArsL7qdAHEM3v2WwlYr55BRh6q*eDJFX5OY03AmaTFduteiUVLed36**WHffxU5LHaLGm9mq9tJRopOQtH3yMH!hK*ctldGSZ3k7ThYh4PXWd17sAJOtTG!TIpbK1t74aHZnv69ncD8G9aeL19z5QNYyQrn48PMQ1ty8p29m7jXHj8r56iNqmBHosLhlay*76rVXJBmYJqMoOGmoeeXUlbxfIO1kFkbkvCaiZN!f5vCnQ3EMImvRFRg3YA9n5PWY9rrrTqd5z7dgQSH*Pgyxcn6FuA$$", "copy_line": "ChristinLeno5020@outlook.com----3qP3kEjF----9e5f94bc-e8a4-4e73-b8be-63364c29d753----M.C506_BAY.0.U.MsaArtifacts.-Cr61hObZb12NgdNkwZD2XpB2PcyL1icp2ohqDhsRAEhuTQiD9ub37RPAJeyaNAn88MQBRz6PHBEcYQUF7om0t*DrMud42WVuWR6pdgLNkZ29SPbvhbPTu2W7n!!GlBXUKQnV14lcjNpDUeqNoMXXAnAo1PiQVNbwX0rHCuZtArsL7qdAHEM3v2WwlYr55BRh6q*eDJFX5OY03AmaTFduteiUVLed36**WHffxU5LHaLGm9mq9tJRopOQtH3yMH!hK*ctldGSZ3k7ThYh4PXWd17sAJOtTG!TIpbK1t74aHZnv69ncD8G9aeL19z5QNYyQrn48PMQ1ty8p29m7jXHj8r56iNqmBHosLhlay*76rVXJBmYJqMoOGmoeeXUlbxfIO1kFkbkvCaiZN!f5vCnQ3EMImvRFRg3YA9n5PWY9rrrTqd5z7dgQSH*Pgyxcn6FuA$$----eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc4MjA0NDg1MCwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6IjI0NTdhYWM5LWJkNmItNDUzNi1iMDMzLWFmZTMzNjc1NTgwZCIsImNoYXRncHRfYWNjb3VudF91c2VyX2lkIjoidXNlci1hSEVDVGlkbWFvVXJUdjV2dEtXRUVwWk1fXzI0NTdhYWM5LWJkNmItNDUzNi1iMDMzLWFmZTMzNjc1NTgwZCIsImNoYXRncHRfY29tcHV0ZV9yZXNpZGVuY3kiOiJub19jb25zdHJhaW50IiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJmcmVlIiwiY2hhdGdwdF91c2VyX2lkIjoidXNlci1hSEVDVGlkbWFvVXJUdjV2dEtXRUVwWk0iLCJpc19zaWdudXAiOnRydWUsInVzZXJfaWQiOiJ1c2VyLWFIRUNUaWRtYW9VclR2NXZ0S1dFRXBaTSJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJDaHJpc3Rpbkxlbm81MDIwQG91dGxvb2suY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJpYXQiOjE3ODExODA4NDksImlzcyI6Imh0dHBzOi8vYXV0aC5vcGVuYWkuY29tIiwianRpIjoiMzBhYWJmOWItNmRiNC00NWQ5LTg0ZDItNzI4OGEyMWQxMGMzIiwibmJmIjoxNzgxMTgwODQ5LCJwd2RfYXV0aF90aW1lIjoxNzgxMTgwODQ1ODI0LCJzY3AiOlsib3BlbmlkIiwiZW1haWwiLCJwcm9maWxlIiwib2ZmbGluZV9hY2Nlc3MiLCJtb2RlbC5yZXF1ZXN0IiwibW9kZWwucmVhZCIsIm9yZ2FuaXphdGlvbi5yZWFkIiwib3JnYW5pemF0aW9uLndyaXRlIl0sInNlc3Npb25faWQiOiJhdXRoc2Vzc184b2RkaEw4dGNKQVdxMWI1S3JLS3VEaWciLCJzbCI6dHJ1ZSwic3ViIjoiYXV0aDB8R1ZBRERGU1JBc3N2QnJBQlJGZzBWMDdEIn0.E2xsdcDMm3ryycZE21cTl82j7HA6LClHQ4Brx8lqBj5Hpkmr17WuC83O8uqUaGDecpwbpsGSmFwvBYetsKeyl1nxPfZLU20oWD3gMZLiFYnTCA2yotede9kd70mRjVDL8dcuTuqSEeuDhCVC-X1aWlcTv2W6kY-WAigiW0AqThQo-04uczaIMiXdqg3WHsfMu8BnkUJd7ydeNdA6XvlALUJu6SjYUlBRI7-0N3Hl5PSUGYga3XXdRFuWKX5XOcvSYvIPtnv8FHWL9JoX3GV6Be8rO6oLzvvspx5HJ5RtvFLX-pUOPgQ3UCrnqpzd097QQBlDM6IhAfwz32usalt2JnkvJr8GKDsyhA1Cga4Qamo1zfItEUrOtGbd5dFNtg5ors6zQtSTWXfH-CnLHJZroKpgOjzNwDE7Ed2dtnedwub4l-pd4ZRyhoAXyzudRlmhPCTJh5qU5pMd4-gMgA1ckw4r9rQnXnA98rCaTqw64bB-tc3524p4fKg4DJfT__-Kw4ZSHyXC3kgLNUYtHlY7OGQiTfjTVU3jeCcxtLrTshGPk-t2dcixoHQGE6Q4IUhCogCsRwlGPh_Rro0qE7IHxc6Xk7sUz_D_f2atMSQdmsW15C8S88GVsc5UPZpAfQfVmQJSeYMTWYT_d0ruzOhH-JeIF_Gfm64CelDSKZ-1S6Q"}], "outlook": [{"id": 2, "email": "uutwilt55181@outlook.com", "password": "xuxby001213", "client_id": "9e5f94bc-e8a4-4e73-b8be-63364c29d753", "refresh_token": "M.C534_SN1.0.U.MsaArtifacts.-ClgMmSGCI6qQIqK6DIbyGI8MimywZ5vIZNLg5fO7Kc30VdwkpQ9xFI7QzaY7sc2dZHoO2uwvHluk1SZks*mjtJ1fEd9WWOgR4So1UuxvekZslKqMRWA!rN*0bhjL7l3z6DEplaiK43Lr4OXAx0WXAjACFc3SbTlXCzrmdgh8z5ZwoQ3raT4PejlzAqYAY4gHt3YcBsszqkf3mAdtRPUSbApJHv!D3B8OiAihfu1RczipS9rQkIa50gxMDrQYWkW!r6tdMEQBnQ8t1iYrfrpKwBR8OXs06CohDafAe!MUSnm819031jQLR*HTA66PaQ3HSZzb!QyNs82buRu!kGWwzOaaN8y9YeyRekgFt1of!1*i1gN9eWI2c9mHd*l86LJcmvexanszJXfWdxBnmrVHeldhHO7U6DFyw3CY9uOCj5EOMwvgBvlRq108PEcWIWg7tw$$", "status": "used", "note": null, "imported_at": "2026-06-11T16:48:54", "copy_line": "uutwilt55181@outlook.com----xuxby001213----9e5f94bc-e8a4-4e73-b8be-63364c29d753----M.C534_SN1.0.U.MsaArtifacts.-ClgMmSGCI6qQIqK6DIbyGI8MimywZ5vIZNLg5fO7Kc30VdwkpQ9xFI7QzaY7sc2dZHoO2uwvHluk1SZks*mjtJ1fEd9WWOgR4So1UuxvekZslKqMRWA!rN*0bhjL7l3z6DEplaiK43Lr4OXAx0WXAjACFc3SbTlXCzrmdgh8z5ZwoQ3raT4PejlzAqYAY4gHt3YcBsszqkf3mAdtRPUSbApJHv!D3B8OiAihfu1RczipS9rQkIa50gxMDrQYWkW!r6tdMEQBnQ8t1iYrfrpKwBR8OXs06CohDafAe!MUSnm819031jQLR*HTA66PaQ3HSZzb!QyNs82buRu!kGWwzOaaN8y9YeyRekgFt1of!1*i1gN9eWI2c9mHd*l86LJcmvexanszJXfWdxBnmrVHeldhHO7U6DFyw3CY9uOCj5EOMwvgBvlRq108PEcWIWg7tw$$", "used_at": "2026-06-11T20:29:39", "registered_account_id": 2, "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc4MjA0NTAwNiwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6IjZjY2FiN2MyLWI0YWItNGIyYS04ZmRmLWFjYjZjMGQ3OTk0YiIsImNoYXRncHRfYWNjb3VudF91c2VyX2lkIjoidXNlci0wejVlQ0xTV0ZtYUpFWkhnc3pyaWZuU29fXzZjY2FiN2MyLWI0YWItNGIyYS04ZmRmLWFjYjZjMGQ3OTk0YiIsImNoYXRncHRfY29tcHV0ZV9yZXNpZGVuY3kiOiJub19jb25zdHJhaW50IiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJmcmVlIiwiY2hhdGdwdF91c2VyX2lkIjoidXNlci0wejVlQ0xTV0ZtYUpFWkhnc3pyaWZuU28iLCJpc19zaWdudXAiOnRydWUsInVzZXJfaWQiOiJ1c2VyLTB6NWVDTFNXRm1hSkVaSGdzenJpZm5TbyJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJ1dXR3aWx0NTUxODFAb3V0bG9vay5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sImlhdCI6MTc4MTE4MTAwNiwiaXNzIjoiaHR0cHM6Ly9hdXRoLm9wZW5haS5jb20iLCJqdGkiOiI2MzgzMmM3Ny0yNmQxLTQ3NjYtYWZlYy1mNTZjMjNlZDdiNTEiLCJuYmYiOjE3ODExODEwMDYsInB3ZF9hdXRoX3RpbWUiOjE3ODExODEwMDE4OTAsInNjcCI6WyJvcGVuaWQiLCJlbWFpbCIsInByb2ZpbGUiLCJvZmZsaW5lX2FjY2VzcyIsIm1vZGVsLnJlcXVlc3QiLCJtb2RlbC5yZWFkIiwib3JnYW5pemF0aW9uLnJlYWQiLCJvcmdhbml6YXRpb24ud3JpdGUiXSwic2Vzc2lvbl9pZCI6ImF1dGhzZXNzX1lZR0dmUHVGNkZFSXQ3RjhpZ1BHcjZyeCIsInNsIjp0cnVlLCJzdWIiOiJhdXRoMHx6UWN1SmtMODh5cjN1MG9SbXpybUNOeFAifQ.oQMWjE_qAnpIRXcTqWZw-1VPi3bWzTHZ6I7jGbOuAjLtiKppxcMgrC070hh8rq5zT6n3OFH-Od7nFHgh0yAZX4vrSSl53Ylgeg0oeBWbxZqLSAWoTBNkN1B_FePLUO6Zteq9tj5Cqq2US2ObgmdwR6mQyitPJw0gUX_WDam1gro2GVIrkiA5JAIe3azmDI0i0eYOh1iY49JF5BfK39AX194VyVGgKgSng81xIyGf7DJUHcUo8x2TlKmduAF5z76tgLHgsBz8IyVGrsjhjtyjRchCOp2mlZgAMQaKag_PzM2tgeMxSgRgmPnKowVqHmxk7g583_KKx8NDUO-3Rq0Bg4xltINO3wWhecl9kZYE9GBMwxTrbrnG4PmwVUtzSTgkoruJ0VipdS6c8YXVFhvWs2susdqYMg_HEpoEBTFxiql_ZO9BLBh3aun5m9Uirn_-5DE63ZAJgqrcdpH3ECJMDFCZknmgEcKJiYE5ULeQP8xf9IfDBmXyh97ZTCyPNk40CUriqvWlCo48F8vWFfOk-5FgcavvcX9YA6Cb5zxZENH3suvTKcpMMkjvIpFLu2gGU3A8QGgb_MBWvWvErnBPayT6iQQkJDfRvNNIuLMox_sz9AZtXRj2oWYZymuwlMZVJdv1mhY2hArfo0gZ_YMbwAMlag1iTvvMhYTvDDpT44c", "completed_at": "2026-06-11T20:30:14", "access_token_preview": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1...", "account_copy_line": "uutwilt55181@outlook.com----xuxby001213----9e5f94bc-e8a4-4e73-b8be-63364c29d753----M.C534_SN1.0.U.MsaArtifacts.-ClgMmSGCI6qQIqK6DIbyGI8MimywZ5vIZNLg5fO7Kc30VdwkpQ9xFI7QzaY7sc2dZHoO2uwvHluk1SZks*mjtJ1fEd9WWOgR4So1UuxvekZslKqMRWA!rN*0bhjL7l3z6DEplaiK43Lr4OXAx0WXAjACFc3SbTlXCzrmdgh8z5ZwoQ3raT4PejlzAqYAY4gHt3YcBsszqkf3mAdtRPUSbApJHv!D3B8OiAihfu1RczipS9rQkIa50gxMDrQYWkW!r6tdMEQBnQ8t1iYrfrpKwBR8OXs06CohDafAe!MUSnm819031jQLR*HTA66PaQ3HSZzb!QyNs82buRu!kGWwzOaaN8y9YeyRekgFt1of!1*i1gN9eWI2c9mHd*l86LJcmvexanszJXfWdxBnmrVHeldhHO7U6DFyw3CY9uOCj5EOMwvgBvlRq108PEcWIWg7tw$$----eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc4MjA0NTAwNiwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6IjZjY2FiN2MyLWI0YWItNGIyYS04ZmRmLWFjYjZjMGQ3OTk0YiIsImNoYXRncHRfYWNjb3VudF91c2VyX2lkIjoidXNlci0wejVlQ0xTV0ZtYUpFWkhnc3pyaWZuU29fXzZjY2FiN2MyLWI0YWItNGIyYS04ZmRmLWFjYjZjMGQ3OTk0YiIsImNoYXRncHRfY29tcHV0ZV9yZXNpZGVuY3kiOiJub19jb25zdHJhaW50IiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJmcmVlIiwiY2hhdGdwdF91c2VyX2lkIjoidXNlci0wejVlQ0xTV0ZtYUpFWkhnc3pyaWZuU28iLCJpc19zaWdudXAiOnRydWUsInVzZXJfaWQiOiJ1c2VyLTB6NWVDTFNXRm1hSkVaSGdzenJpZm5TbyJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJ1dXR3aWx0NTUxODFAb3V0bG9vay5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sImlhdCI6MTc4MTE4MTAwNiwiaXNzIjoiaHR0cHM6Ly9hdXRoLm9wZW5haS5jb20iLCJqdGkiOiI2MzgzMmM3Ny0yNmQxLTQ3NjYtYWZlYy1mNTZjMjNlZDdiNTEiLCJuYmYiOjE3ODExODEwMDYsInB3ZF9hdXRoX3RpbWUiOjE3ODExODEwMDE4OTAsInNjcCI6WyJvcGVuaWQiLCJlbWFpbCIsInByb2ZpbGUiLCJvZmZsaW5lX2FjY2VzcyIsIm1vZGVsLnJlcXVlc3QiLCJtb2RlbC5yZWFkIiwib3JnYW5pemF0aW9uLnJlYWQiLCJvcmdhbml6YXRpb24ud3JpdGUiXSwic2Vzc2lvbl9pZCI6ImF1dGhzZXNzX1lZR0dmUHVGNkZFSXQ3RjhpZ1BHcjZyeCIsInNsIjp0cnVlLCJzdWIiOiJhdXRoMHx6UWN1SmtMODh5cjN1MG9SbXpybUNOeFAifQ.oQMWjE_qAnpIRXcTqWZw-1VPi3bWzTHZ6I7jGbOuAjLtiKppxcMgrC070hh8rq5zT6n3OFH-Od7nFHgh0yAZX4vrSSl53Ylgeg0oeBWbxZqLSAWoTBNkN1B_FePLUO6Zteq9tj5Cqq2US2ObgmdwR6mQyitPJw0gUX_WDam1gro2GVIrkiA5JAIe3azmDI0i0eYOh1iY49JF5BfK39AX194VyVGgKgSng81xIyGf7DJUHcUo8x2TlKmduAF5z76tgLHgsBz8IyVGrsjhjtyjRchCOp2mlZgAMQaKag_PzM2tgeMxSgRgmPnKowVqHmxk7g583_KKx8NDUO-3Rq0Bg4xltINO3wWhecl9kZYE9GBMwxTrbrnG4PmwVUtzSTgkoruJ0VipdS6c8YXVFhvWs2susdqYMg_HEpoEBTFxiql_ZO9BLBh3aun5m9Uirn_-5DE63ZAJgqrcdpH3ECJMDFCZknmgEcKJiYE5ULeQP8xf9IfDBmXyh97ZTCyPNk40CUriqvWlCo48F8vWFfOk-5FgcavvcX9YA6Cb5zxZENH3suvTKcpMMkjvIpFLu2gGU3A8QGgb_MBWvWvErnBPayT6iQQkJDfRvNNIuLMox_sz9AZtXRj2oWYZymuwlMZVJdv1mhY2hArfo0gZ_YMbwAMlag1iTvvMhYTvDDpT44c", "totp_secret": null}, {"id": 1, "email": "ChristinLeno5020@outlook.com", "password": "3qP3kEjF", "client_id": "9e5f94bc-e8a4-4e73-b8be-63364c29d753", "refresh_token": "M.C506_BAY.0.U.MsaArtifacts.-Cr61hObZb12NgdNkwZD2XpB2PcyL1icp2ohqDhsRAEhuTQiD9ub37RPAJeyaNAn88MQBRz6PHBEcYQUF7om0t*DrMud42WVuWR6pdgLNkZ29SPbvhbPTu2W7n!!GlBXUKQnV14lcjNpDUeqNoMXXAnAo1PiQVNbwX0rHCuZtArsL7qdAHEM3v2WwlYr55BRh6q*eDJFX5OY03AmaTFduteiUVLed36**WHffxU5LHaLGm9mq9tJRopOQtH3yMH!hK*ctldGSZ3k7ThYh4PXWd17sAJOtTG!TIpbK1t74aHZnv69ncD8G9aeL19z5QNYyQrn48PMQ1ty8p29m7jXHj8r56iNqmBHosLhlay*76rVXJBmYJqMoOGmoeeXUlbxfIO1kFkbkvCaiZN!f5vCnQ3EMImvRFRg3YA9n5PWY9rrrTqd5z7dgQSH*Pgyxcn6FuA$$", "status": "used", "note": null, "imported_at": "2026-06-11T16:21:05", "copy_line": "ChristinLeno5020@outlook.com----3qP3kEjF----9e5f94bc-e8a4-4e73-b8be-63364c29d753----M.C506_BAY.0.U.MsaArtifacts.-Cr61hObZb12NgdNkwZD2XpB2PcyL1icp2ohqDhsRAEhuTQiD9ub37RPAJeyaNAn88MQBRz6PHBEcYQUF7om0t*DrMud42WVuWR6pdgLNkZ29SPbvhbPTu2W7n!!GlBXUKQnV14lcjNpDUeqNoMXXAnAo1PiQVNbwX0rHCuZtArsL7qdAHEM3v2WwlYr55BRh6q*eDJFX5OY03AmaTFduteiUVLed36**WHffxU5LHaLGm9mq9tJRopOQtH3yMH!hK*ctldGSZ3k7ThYh4PXWd17sAJOtTG!TIpbK1t74aHZnv69ncD8G9aeL19z5QNYyQrn48PMQ1ty8p29m7jXHj8r56iNqmBHosLhlay*76rVXJBmYJqMoOGmoeeXUlbxfIO1kFkbkvCaiZN!f5vCnQ3EMImvRFRg3YA9n5PWY9rrrTqd5z7dgQSH*Pgyxcn6FuA$$", "used_at": "2026-06-11T20:26:31", "registered_account_id": 1, "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc4MjA0NDg1MCwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6IjI0NTdhYWM5LWJkNmItNDUzNi1iMDMzLWFmZTMzNjc1NTgwZCIsImNoYXRncHRfYWNjb3VudF91c2VyX2lkIjoidXNlci1hSEVDVGlkbWFvVXJUdjV2dEtXRUVwWk1fXzI0NTdhYWM5LWJkNmItNDUzNi1iMDMzLWFmZTMzNjc1NTgwZCIsImNoYXRncHRfY29tcHV0ZV9yZXNpZGVuY3kiOiJub19jb25zdHJhaW50IiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJmcmVlIiwiY2hhdGdwdF91c2VyX2lkIjoidXNlci1hSEVDVGlkbWFvVXJUdjV2dEtXRUVwWk0iLCJpc19zaWdudXAiOnRydWUsInVzZXJfaWQiOiJ1c2VyLWFIRUNUaWRtYW9VclR2NXZ0S1dFRXBaTSJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJDaHJpc3Rpbkxlbm81MDIwQG91dGxvb2suY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJpYXQiOjE3ODExODA4NDksImlzcyI6Imh0dHBzOi8vYXV0aC5vcGVuYWkuY29tIiwianRpIjoiMzBhYWJmOWItNmRiNC00NWQ5LTg0ZDItNzI4OGEyMWQxMGMzIiwibmJmIjoxNzgxMTgwODQ5LCJwd2RfYXV0aF90aW1lIjoxNzgxMTgwODQ1ODI0LCJzY3AiOlsib3BlbmlkIiwiZW1haWwiLCJwcm9maWxlIiwib2ZmbGluZV9hY2Nlc3MiLCJtb2RlbC5yZXF1ZXN0IiwibW9kZWwucmVhZCIsIm9yZ2FuaXphdGlvbi5yZWFkIiwib3JnYW5pemF0aW9uLndyaXRlIl0sInNlc3Npb25faWQiOiJhdXRoc2Vzc184b2RkaEw4dGNKQVdxMWI1S3JLS3VEaWciLCJzbCI6dHJ1ZSwic3ViIjoiYXV0aDB8R1ZBRERGU1JBc3N2QnJBQlJGZzBWMDdEIn0.E2xsdcDMm3ryycZE21cTl82j7HA6LClHQ4Brx8lqBj5Hpkmr17WuC83O8uqUaGDecpwbpsGSmFwvBYetsKeyl1nxPfZLU20oWD3gMZLiFYnTCA2yotede9kd70mRjVDL8dcuTuqSEeuDhCVC-X1aWlcTv2W6kY-WAigiW0AqThQo-04uczaIMiXdqg3WHsfMu8BnkUJd7ydeNdA6XvlALUJu6SjYUlBRI7-0N3Hl5PSUGYga3XXdRFuWKX5XOcvSYvIPtnv8FHWL9JoX3GV6Be8rO6oLzvvspx5HJ5RtvFLX-pUOPgQ3UCrnqpzd097QQBlDM6IhAfwz32usalt2JnkvJr8GKDsyhA1Cga4Qamo1zfItEUrOtGbd5dFNtg5ors6zQtSTWXfH-CnLHJZroKpgOjzNwDE7Ed2dtnedwub4l-pd4ZRyhoAXyzudRlmhPCTJh5qU5pMd4-gMgA1ckw4r9rQnXnA98rCaTqw64bB-tc3524p4fKg4DJfT__-Kw4ZSHyXC3kgLNUYtHlY7OGQiTfjTVU3jeCcxtLrTshGPk-t2dcixoHQGE6Q4IUhCogCsRwlGPh_Rro0qE7IHxc6Xk7sUz_D_f2atMSQdmsW15C8S88GVsc5UPZpAfQfVmQJSeYMTWYT_d0ruzOhH-JeIF_Gfm64CelDSKZ-1S6Q", "completed_at": "2026-06-11T20:27:37", "access_token_preview": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1...", "account_copy_line": "ChristinLeno5020@outlook.com----3qP3kEjF----9e5f94bc-e8a4-4e73-b8be-63364c29d753----M.C506_BAY.0.U.MsaArtifacts.-Cr61hObZb12NgdNkwZD2XpB2PcyL1icp2ohqDhsRAEhuTQiD9ub37RPAJeyaNAn88MQBRz6PHBEcYQUF7om0t*DrMud42WVuWR6pdgLNkZ29SPbvhbPTu2W7n!!GlBXUKQnV14lcjNpDUeqNoMXXAnAo1PiQVNbwX0rHCuZtArsL7qdAHEM3v2WwlYr55BRh6q*eDJFX5OY03AmaTFduteiUVLed36**WHffxU5LHaLGm9mq9tJRopOQtH3yMH!hK*ctldGSZ3k7ThYh4PXWd17sAJOtTG!TIpbK1t74aHZnv69ncD8G9aeL19z5QNYyQrn48PMQ1ty8p29m7jXHj8r56iNqmBHosLhlay*76rVXJBmYJqMoOGmoeeXUlbxfIO1kFkbkvCaiZN!f5vCnQ3EMImvRFRg3YA9n5PWY9rrrTqd5z7dgQSH*Pgyxcn6FuA$$----eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc4MjA0NDg1MCwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6IjI0NTdhYWM5LWJkNmItNDUzNi1iMDMzLWFmZTMzNjc1NTgwZCIsImNoYXRncHRfYWNjb3VudF91c2VyX2lkIjoidXNlci1hSEVDVGlkbWFvVXJUdjV2dEtXRUVwWk1fXzI0NTdhYWM5LWJkNmItNDUzNi1iMDMzLWFmZTMzNjc1NTgwZCIsImNoYXRncHRfY29tcHV0ZV9yZXNpZGVuY3kiOiJub19jb25zdHJhaW50IiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJmcmVlIiwiY2hhdGdwdF91c2VyX2lkIjoidXNlci1hSEVDVGlkbWFvVXJUdjV2dEtXRUVwWk0iLCJpc19zaWdudXAiOnRydWUsInVzZXJfaWQiOiJ1c2VyLWFIRUNUaWRtYW9VclR2NXZ0S1dFRXBaTSJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJDaHJpc3Rpbkxlbm81MDIwQG91dGxvb2suY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJpYXQiOjE3ODExODA4NDksImlzcyI6Imh0dHBzOi8vYXV0aC5vcGVuYWkuY29tIiwianRpIjoiMzBhYWJmOWItNmRiNC00NWQ5LTg0ZDItNzI4OGEyMWQxMGMzIiwibmJmIjoxNzgxMTgwODQ5LCJwd2RfYXV0aF90aW1lIjoxNzgxMTgwODQ1ODI0LCJzY3AiOlsib3BlbmlkIiwiZW1haWwiLCJwcm9maWxlIiwib2ZmbGluZV9hY2Nlc3MiLCJtb2RlbC5yZXF1ZXN0IiwibW9kZWwucmVhZCIsIm9yZ2FuaXphdGlvbi5yZWFkIiwib3JnYW5pemF0aW9uLndyaXRlIl0sInNlc3Npb25faWQiOiJhdXRoc2Vzc184b2RkaEw4dGNKQVdxMWI1S3JLS3VEaWciLCJzbCI6dHJ1ZSwic3ViIjoiYXV0aDB8R1ZBRERGU1JBc3N2QnJBQlJGZzBWMDdEIn0.E2xsdcDMm3ryycZE21cTl82j7HA6LClHQ4Brx8lqBj5Hpkmr17WuC83O8uqUaGDecpwbpsGSmFwvBYetsKeyl1nxPfZLU20oWD3gMZLiFYnTCA2yotede9kd70mRjVDL8dcuTuqSEeuDhCVC-X1aWlcTv2W6kY-WAigiW0AqThQo-04uczaIMiXdqg3WHsfMu8BnkUJd7ydeNdA6XvlALUJu6SjYUlBRI7-0N3Hl5PSUGYga3XXdRFuWKX5XOcvSYvIPtnv8FHWL9JoX3GV6Be8rO6oLzvvspx5HJ5RtvFLX-pUOPgQ3UCrnqpzd097QQBlDM6IhAfwz32usalt2JnkvJr8GKDsyhA1Cga4Qamo1zfItEUrOtGbd5dFNtg5ors6zQtSTWXfH-CnLHJZroKpgOjzNwDE7Ed2dtnedwub4l-pd4ZRyhoAXyzudRlmhPCTJh5qU5pMd4-gMgA1ckw4r9rQnXnA98rCaTqw64bB-tc3524p4fKg4DJfT__-Kw4ZSHyXC3kgLNUYtHlY7OGQiTfjTVU3jeCcxtLrTshGPk-t2dcixoHQGE6Q4IUhCogCsRwlGPh_Rro0qE7IHxc6Xk7sUz_D_f2atMSQdmsW15C8S88GVsc5UPZpAfQfVmQJSeYMTWYT_d0ruzOhH-JeIF_Gfm64CelDSKZ-1S6Q", "totp_secret": null}], "summary": {"accounts": 2, "outlook_total": 2, "outlook_available": 0, "outlook_used": 2, "outlook_failed": 0}}</script>
+<script>
+const SNAPSHOT = JSON.parse(document.getElementById('snapshot').textContent);
+const $ = (s) => document.querySelector(s);
+let copySeq = 0;
+const copyStore = new Map();
+
+function fmt(v) { return v == null || v === '' ? '-' : String(v); }
+function esc(v) {
+  return fmt(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function short(v, n = 34) {
+  const s = v || '';
+  return s.length > n ? `${s.slice(0, n)}...` : s;
+}
+function copyId(v) {
+  if (!v) return '';
+  const id = `c${++copySeq}`;
+  copyStore.set(id, v);
+  return id;
+}
+function btn(label, value, cls = '') {
+  const id = copyId(value);
+  return `<button class="${cls}" data-copy-id="${id}" ${id ? '' : 'disabled'}>${label}</button>`;
+}
+function pill(status) {
+  const map = { available: '可用', used: '已用', failed: '失败' };
+  const label = map[status] || status || '-';
+  return `<span class="pill status-${esc(status)}">${esc(label)}</span>`;
+}
+function showToast(text) {
+  const toast = $('#toast');
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.classList.remove('show'), 1400);
+}
+async function copyText(text) {
+  if (!text) return;
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+  } else {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand('copy');
+    area.remove();
+  }
+  showToast('已复制');
+}
+function haystack(row) {
+  return Object.values(row).join('\n').toLowerCase();
+}
+function render() {
+  copyStore.clear();
+  copySeq = 0;
+  const q = $('#q').value.trim().toLowerCase();
+  const accounts = SNAPSHOT.accounts.filter((r) => !q || haystack(r).includes(q));
+  const outlook = SNAPSHOT.outlook.filter((r) => !q || haystack(r).includes(q));
+  $('#generated').textContent = SNAPSHOT.generated_at;
+  $('#statAccounts').textContent = SNAPSHOT.summary.accounts;
+  $('#statOutlook').textContent = SNAPSHOT.summary.outlook_total;
+  $('#statAvailable').textContent = SNAPSHOT.summary.outlook_available;
+  $('#accountsBody').innerHTML = accounts.map((r) => `
+    <tr>
+      <td class="muted">#${esc(r.id)}</td>
+      <td><div class="main-cell">${esc(r.email)}</div><div class="sub-cell">${esc(r.user_name || '-')}</div></td>
+      <td>${esc(r.email_source || '-')}</td>
+      <td><span class="mono">${esc(short(r.access_token || '', 42))}</span></td>
+      <td>${r.totp_secret ? '已启用' : '<span class="muted">未启用</span>'}</td>
+      <td class="muted">${esc(r.created_at || '-')}</td>
+      <td class="actions">${btn('复制Token', r.access_token, 'primary')} ${btn('复制整行', r.copy_line, 'good')}</td>
+    </tr>`).join('');
+  $('#outlookBody').innerHTML = outlook.map((r) => `
+    <tr>
+      <td><div class="main-cell">${esc(r.email)}</div><div class="sub-cell mono">${esc(short(r.copy_line, 76))}</div></td>
+      <td>${pill(r.status)}</td>
+      <td><span class="mono">${esc(short(r.access_token || '', 36) || '未生成')}</span></td>
+      <td class="muted">${esc(r.used_at || '-')}</td>
+      <td class="actions">${btn('复制邮箱', r.copy_line)} ${btn('复制Token', r.access_token, 'primary')} ${btn('复制整行', r.account_copy_line, 'good')}</td>
+    </tr>`).join('');
+}
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('[data-copy-id]');
+  if (!target) return;
+  copyText(copyStore.get(target.dataset.copyId));
+});
+$('#q').addEventListener('input', render);
+$('#copyAllTokens').addEventListener('click', () => copyText(SNAPSHOT.accounts.map((r) => r.access_token).filter(Boolean).join('\n')));
+$('#copyAllLines').addEventListener('click', () => copyText(SNAPSHOT.accounts.map((r) => r.copy_line).filter(Boolean).join('\n')));
+$('#copyAllEmails').addEventListener('click', () => copyText(SNAPSHOT.outlook.map((r) => r.copy_line).filter(Boolean).join('\n')));
+render();
+</script>
+</body>
+</html>
