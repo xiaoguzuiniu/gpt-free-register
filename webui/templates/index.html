@@ -260,7 +260,7 @@
     <section class="card">
       <div class="head"><h2>运行配置</h2><p>仅开放运行时安全的开关与数值。协议级常量（client_id / sentinel 版本）不在此处，避免误改废号。</p></div>
       <div class="body">
-        <div id="configBanner" class="banner info">修改后点"保存"，<b>需重启 Web 服务</b>才会生效。</div>
+        <div id="configBanner" class="banner info">修改后点"保存"，<b>立即生效</b>（自动热加载，无需重启）。</div>
         <div id="configForm">加载中…</div>
         <div style="margin-top:8px;"><button class="btn primary" id="btnSaveConfig">保存配置</button></div>
       </div>
@@ -561,9 +561,14 @@ $('#btnSaveConfig').addEventListener('click', async () => {
   $('#btnSaveConfig').disabled = true;
   try {
     const r = await api('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({updates}) });
-    $('#configBanner').className = 'banner warn';
-    $('#configBanner').innerHTML = `已保存 ${r.updated.length} 项。<b>请重启 Web 服务（关闭终端里的 python web.py 再重新运行）后生效。</b>`;
-    showToast('配置已保存');
+    if (r.reloaded) {
+      $('#configBanner').className = 'banner info';
+      $('#configBanner').innerHTML = `✅ 已保存 ${r.updated.length} 项，并完成热加载，<b>立即生效</b>，无需重启。`;
+    } else {
+      $('#configBanner').className = 'banner warn';
+      $('#configBanner').innerHTML = `已保存 ${r.updated.length} 项，但<b>热加载失败</b>（${esc(r.note||'')}），请重启 Web 服务后生效。`;
+    }
+    showToast(r.reloaded ? '配置已生效' : '配置已保存（需重启）');
   } catch(e) { showToast('保存失败: ' + e.message); }
   finally { $('#btnSaveConfig').disabled = false; }
 });

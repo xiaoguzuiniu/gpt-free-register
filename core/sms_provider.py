@@ -20,16 +20,9 @@ import time
 
 from curl_cffi.requests import Session as CurlSession
 
-from config.codex import (
-    SMS_API_BASE,
-    SMS_API_KEY,
-    SMS_SERVICE,
-    SMS_COUNTRY,
-    SMS_MAX_PRICE,
-    SMS_CODE_WAIT,
-    SMS_POLL_INTERVAL,
-    SMS_REQUEST_TIMEOUT,
-)
+# 注意：用 `from config import codex` 而不是 `from config.codex import X`，
+# 这样 WebUI 调 config.reload_all() 后，本模块通过 codex.X 读到的是最新值。
+from config import codex as _cfg
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +53,7 @@ class SmsCodeTimeout(SmsProviderError):
 
 def _http() -> CurlSession:
     s = CurlSession(impersonate="chrome142")
-    s.timeout = SMS_REQUEST_TIMEOUT
+    s.timeout = _cfg.SMS_REQUEST_TIMEOUT
     return s
 
 
@@ -69,9 +62,9 @@ def _request(http: CurlSession, params: dict) -> str:
     发一个 GrizzlySMS API 请求，返回去空白的响应文本。
     统一识别公共错误码并抛对应异常。
     """
-    base_params = {"api_key": SMS_API_KEY}
+    base_params = {"api_key": _cfg.SMS_API_KEY}
     base_params.update(params)
-    resp = http.get(SMS_API_BASE, params=base_params)
+    resp = http.get(_cfg.SMS_API_BASE, params=base_params)
     if resp.status_code != 200:
         raise SmsProviderError(
             f"GrizzlySMS HTTP {resp.status_code}: {(resp.text or '')[:200]}"
@@ -120,11 +113,11 @@ def acquire_number(
     try:
         params = {
             "action": "getNumber",
-            "service": service or SMS_SERVICE,
-            "country": country or SMS_COUNTRY,
+            "service": service or _cfg.SMS_SERVICE,
+            "country": country or _cfg.SMS_COUNTRY,
         }
-        if SMS_MAX_PRICE:
-            params["maxPrice"] = SMS_MAX_PRICE
+        if _cfg.SMS_MAX_PRICE:
+            params["maxPrice"] = _cfg.SMS_MAX_PRICE
 
         text = _request(http, params)
         # 成功格式：ACCESS_NUMBER:激活ID:号码
@@ -165,10 +158,10 @@ def wait_for_sms_code(
     """
     own_http = http is None
     http = http or _http()
-    deadline = time.time() + (max_wait or SMS_CODE_WAIT)
-    interval = poll_interval or SMS_POLL_INTERVAL
+    deadline = time.time() + (max_wait or _cfg.SMS_CODE_WAIT)
+    interval = poll_interval or _cfg.SMS_POLL_INTERVAL
     try:
-        logger.info(f"[SMS] 等待短信验证码 activation_id={activation_id}，最长 {max_wait or SMS_CODE_WAIT}s...")
+        logger.info(f"[SMS] 等待短信验证码 activation_id={activation_id}，最长 {max_wait or _cfg.SMS_CODE_WAIT}s...")
         while time.time() < deadline:
             text = _request(http, {"action": "getStatus", "id": activation_id})
 
@@ -183,7 +176,7 @@ def wait_for_sms_code(
             logger.debug(f"[SMS] 状态={text}，{interval}s 后重试（剩余 {remaining}s）")
             time.sleep(interval)
 
-        raise SmsCodeTimeout(f"等待短信超时（>{max_wait or SMS_CODE_WAIT}s），activation_id={activation_id}")
+        raise SmsCodeTimeout(f"等待短信超时（>{max_wait or _cfg.SMS_CODE_WAIT}s），activation_id={activation_id}")
     finally:
         if own_http:
             http.close()

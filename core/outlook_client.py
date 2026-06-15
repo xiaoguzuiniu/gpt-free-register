@@ -35,11 +35,11 @@ from curl_cffi.requests import Session as CurlSession
 from config import (
     OUTLOOK_ACCOUNTS_FILE,
     OUTLOOK_API_BASE,
-    OTP_POLL_INTERVAL,
-    OTP_MAX_WAIT,
     OTP_SETTLE_SECONDS,
     USER_AGENT,
 )
+# OTP_POLL_INTERVAL / OTP_MAX_WAIT 是 WebUI 可热改的，从模块读
+from config import email as _email_cfg
 from core.otp_utils import looks_like_openai_email, extract_otp
 
 logger = logging.getLogger(__name__)
@@ -420,14 +420,14 @@ def fetch_latest_otp(
     if account is None:
         raise OutlookClientError(f"未找到 {email} 的账号上下文，无法取 OTP")
 
-    deadline = time.time() + (max_wait or OTP_MAX_WAIT)
-    interval = poll_interval or OTP_POLL_INTERVAL
+    deadline = time.time() + (max_wait or _email_cfg.OTP_MAX_WAIT)
+    interval = poll_interval or _email_cfg.OTP_POLL_INTERVAL
     settle = settle_seconds if settle_seconds is not None else OTP_SETTLE_SECONDS
     session = _http_session()
 
     logger.info(
         f"[Outlook] 开始轮询 {email} 的收件箱（双协议 graph + imap），"
-        f"最长 {max_wait or OTP_MAX_WAIT}s, settle={settle}s..."
+        f"最长 {max_wait or _email_cfg.OTP_MAX_WAIT}s, settle={settle}s..."
     )
 
     # settle 状态机
@@ -515,7 +515,7 @@ def fetch_latest_otp(
         return best_otp
 
     raise OutlookClientError(
-        f"等待 {email} 的 OTP 超时（>{max_wait or OTP_MAX_WAIT}s）。"
+        f"等待 {email} 的 OTP 超时（>{max_wait or _email_cfg.OTP_MAX_WAIT}s）。"
         f"可能：refresh_token 失效 / 邮箱被 OpenAI 黑名单 / IP 风控未通过。"
     )
 

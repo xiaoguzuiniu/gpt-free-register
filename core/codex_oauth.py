@@ -28,16 +28,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlencode, urlparse, parse_qs
 
-from config.codex import (
-    ENABLE_CODEX_AUTO,
-    CODEX_CLIENT_ID,
-    CODEX_AUTH_URL,
-    CODEX_TOKEN_URL,
-    CODEX_REDIRECT_URI,
-    CODEX_SCOPE,
-    CODEX_OUTPUT_DIRNAME,
-    SMS_MAX_RETRIES,
-)
+# 用模块属性方式访问 config，支持 WebUI 热加载（config.reload_all()）。
+# 协议级常量（CLIENT_ID/URL/SCOPE/OUTPUT_DIRNAME）虽然不会改，统一从 _cfg 读，
+# 这样 reload 后立即生效，不用再分两套导入。
+from config import codex as _cfg
 from core.session import BrowserSession
 from core.openai_auth import (
     _is_transient_network_error,
@@ -125,10 +119,10 @@ def _generate_state() -> str:
 def _build_authorize_url(state: str, code_challenge: str, prompt: str = "login") -> str:
     """按 CLIProxyAPI openai_auth.go 的参数集拼 Codex 授权 URL。"""
     params = {
-        "client_id": CODEX_CLIENT_ID,
+        "client_id": _cfg.CODEX_CLIENT_ID,
         "response_type": "code",
-        "redirect_uri": CODEX_REDIRECT_URI,
-        "scope": CODEX_SCOPE,
+        "redirect_uri": _cfg.CODEX_REDIRECT_URI,
+        "scope": _cfg.CODEX_SCOPE,
         "state": state,
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
@@ -136,7 +130,7 @@ def _build_authorize_url(state: str, code_challenge: str, prompt: str = "login")
         "id_token_add_organizations": "true",
         "codex_cli_simplified_flow": "true",
     }
-    return f"{CODEX_AUTH_URL}?{urlencode(params)}"
+    return f"{_cfg.CODEX_AUTH_URL}?{urlencode(params)}"
 
 
 # ============================================================
@@ -270,16 +264,17 @@ def _submit_email_otp(session: BrowserSession, code: str) -> None:
 def _do_phone_verification(session: BrowserSession) -> None:
     """
     用接码平台拿号 → add-phone/send 发短信 → 收码 → phone-otp/validate。
-    一个号收不到码或被 OpenAI 拒就取消换号，最多 SMS_MAX_RETRIES 次。
+    一个号收不到码或被 OpenAI 拒就取消换号，最多 SMS_MAX_RETRIES 次（热加载）。
     """
     http = sms_provider._http()
+    max_retries = _cfg.SMS_MAX_RETRIES
     try:
         last_err = None
-        for attempt in range(1, SMS_MAX_RETRIES + 1):
+        for attempt in range(1, max_retries + 1):
             activation_id = None
             try:
                 activation_id, phone = sms_provider.acquire_number(http)
-                logger.info(f"[Codex] 手机验证尝试 {attempt}/{SMS_MAX_RETRIES}，号码=+{phone}")
+                logger.info(f"[Codex] 手机验证尝试 {attempt}/{max_retries}，号码=+{phone}")
 
                 # 发短信
                 send_resp = _post_json(
@@ -339,7 +334,7 @@ def _do_phone_verification(session: BrowserSession) -> None:
                 continue
 
         raise RuntimeError(
-            f"[Codex] 手机号验证重试 {SMS_MAX_RETRIES} 次仍失败"
+            f"[Codex] 手机号验证重试 {max_retries} 次仍失败"
             + (f"，最后错误：{last_err}" if last_err else "")
         )
     finally:
@@ -455,9 +450,9 @@ def exchange_codex_token(session: BrowserSession, code: str, code_verifier: str)
     """用 authorization code 换 token。"""
     data = {
         "grant_type": "authorization_code",
-        "client_id": CODEX_CLIENT_ID,
+        "client_id": _cfg.CODEX_CLIENT_ID,
         "code": code,
-        "redirect_uri": CODEX_REDIRECT_URI,
+        "redirect_uri": _cfg.CODEX_REDIRECT_URI,
         "code_verifier": code_verifier,
     }
     headers = {
@@ -469,7 +464,7 @@ def exchange_codex_token(session: BrowserSession, code: str, code_verifier: str)
     headers = base
 
     logger.info("[Codex] 用 authorization code 换 token...")
-    resp = session.post(CODEX_TOKEN_URL, headers=headers, data=urlencode(data))
+    resp = session.post(_cfg.CODEX_TOKEN_URL, headers=headers, data=urlencode(data))
     http_status = resp.status_code
     if http_status != 200:
         raise RuntimeError(
@@ -547,7 +542,7 @@ def _credential_file_name(email: str, plan_type: str) -> str:
 
 def save_codex_credential(storage: dict, email: str, plan_type: str) -> Path:
     """落盘到 {PROJECT_ROOT}/{CODEX_OUTPUT_DIRNAME}/codex-{email}.json。"""
-    out_dir = _PROJECT_ROOT / CODEX_OUTPUT_DIRNAME
+    out_dir = _PROJECT_ROOT / _cfg.CODEX_OUTPUT_DIRNAME
     out_dir.mkdir(parents=True, exist_ok=True)
     fname = _credential_file_name(email, plan_type)
     path = out_dir / fname
@@ -577,7 +572,7 @@ def run_codex_oauth(email: str, otp_provider=None, proxy: str | None = None) -> 
     Returns:
         结构化结果 dict。任何异常都被吞掉转 status=failed，不向上抛，不影响注册主流程。
     """
-    if not ENABLE_CODEX_AUTO:
+    if not _cfg.ENABLE_CODEX_AUTO:
         return _codex_result(status="skipped", message="ENABLE_CODEX_AUTO=False")
     if not email:
         return _codex_result(status="skipped", message="email 为空")

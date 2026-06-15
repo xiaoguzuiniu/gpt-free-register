@@ -332,7 +332,8 @@ def setup_2fa(session: BrowserSession, email: str, otp_code: str | None = None) 
     Returns:
         TOTP secret（Base32 字符串），可直接用于 pyotp.TOTP() 生成 6 位动态码
     """
-    from config import USE_EMAIL_SERVICE  # 局部 import，避免顶部循环依赖
+    # 用模块属性读，支持 WebUI 热加载
+    from config import email as _email_cfg
 
     logger.info("=" * 60)
     logger.info("开始设置 2FA")
@@ -346,7 +347,7 @@ def setup_2fa(session: BrowserSession, email: str, otp_code: str | None = None) 
     time.sleep(2)
 
     if otp_code is None:
-        if USE_EMAIL_SERVICE:
+        if _email_cfg.USE_EMAIL_SERVICE:
             from core.email_provider import wait_for_otp
             logger.info("[2FA] 自动等待邮箱重认证 OTP...")
             otp_code = wait_for_otp(email, after_ts=reauth_otp_after_ts)

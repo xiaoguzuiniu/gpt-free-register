@@ -216,11 +216,28 @@ def create_app() -> Flask:
         except Exception as exc:
             logger.exception("配置写入失败")
             return jsonify({"ok": False, "error": f"{type(exc).__name__}: {exc}"}), 500
+
+        # 写盘成功后立即热加载所有 config 子模块，让运行时代码看到新值。
+        reload_ok = True
+        reload_err = ""
+        try:
+            import config as _config_pkg
+            _config_pkg.reload_all()
+        except Exception as exc:
+            reload_ok = False
+            reload_err = f"{type(exc).__name__}: {exc}"
+            logger.exception("配置热加载失败")
+
         return jsonify({
             "ok": True,
             "updated": result["updated"],
             "ignored": result["ignored"],
-            "note": "配置已写入文件，需重启 Web 服务后生效",
+            "reloaded": reload_ok,
+            "note": (
+                "✅ 已保存并热加载，新值立即生效"
+                if reload_ok
+                else f"⚠️ 已写入文件但热加载失败（{reload_err}），需重启 Web 服务才能生效"
+            ),
         })
 
     return app

@@ -11,10 +11,11 @@ import string
 import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
-from config import (
-    REGISTER_EMAIL, REGISTER_NAME, REGISTER_BIRTHDAY,
-    ENABLE_2FA, USE_EMAIL_SERVICE,
-)
+from config import REGISTER_EMAIL, REGISTER_NAME  # 这两个一般不在 WebUI 改
+# 可热改的，按模块属性方式读
+from config import twofa as _twofa_cfg
+from config import email as _email_cfg
+from config import register as _register_cfg
 from core.session import BrowserSession
 from core.chatgpt_auth import get_providers, get_csrf_token, signin_openai
 from core.openai_auth import (
@@ -127,11 +128,11 @@ def prepare_registration_inputs() -> tuple[str, str, str]:
     """按 CLI 规则准备一次注册所需的邮箱、显示名和生日。"""
     email = REGISTER_EMAIL
     name = REGISTER_NAME
-    birthday = REGISTER_BIRTHDAY
+    birthday = _register_cfg.REGISTER_BIRTHDAY
 
     # 邮箱：留空 + USE_EMAIL_SERVICE=True 时从 Outlook 池领取
     if not email:
-        if USE_EMAIL_SERVICE:
+        if _email_cfg.USE_EMAIL_SERVICE:
             email = acquire_email()
             logger.debug(f"自动获取邮箱: {email}")
         else:
@@ -140,7 +141,7 @@ def prepare_registration_inputs() -> tuple[str, str, str]:
     # 显示名称：未填则随机生成
     # OpenAI 限制：name_invalid_chars —— 只允许字母和空格，不能含数字/标点
     if not name:
-        if USE_EMAIL_SERVICE:
+        if _email_cfg.USE_EMAIL_SERVICE:
             name = generate_display_name()
             logger.debug(f"自动生成显示名称: {name}")
         else:
@@ -228,7 +229,7 @@ def run_registration(
 
         # 等待验证码：USE_EMAIL_SERVICE=True 时自动从 Outlook 取件，否则人工输入
         if otp_code is None:
-            if USE_EMAIL_SERVICE:
+            if _email_cfg.USE_EMAIL_SERVICE:
                 logger.info(f"[OTP] 等待验证码：{email}")
                 otp_code = wait_for_otp(email, after_ts=otp_after_ts)
             else:
@@ -269,7 +270,7 @@ def run_registration(
 
         # ==================== 阶段7: 设置 2FA（受 config.ENABLE_2FA 控制）====================
         totp_secret = None
-        if ENABLE_2FA:
+        if _twofa_cfg.ENABLE_2FA:
             # 步骤14-20: 重认证（要再收一次邮箱 OTP）→ enroll TOTP → activate
             try:
                 totp_secret = setup_2fa(session, email)
@@ -415,7 +416,7 @@ def main():
         logger.error("config.REGISTER_EMAIL 已固定邮箱，不适合批量注册；请留空后再使用 --count")
         sys.exit(1)
 
-    if args.workers > 1 and not USE_EMAIL_SERVICE:
+    if args.workers > 1 and not _email_cfg.USE_EMAIL_SERVICE:
         logger.error("多线程注册需要启用 Outlook 自动取件；请开启 USE_EMAIL_SERVICE 或改用 --workers 1")
         sys.exit(1)
 

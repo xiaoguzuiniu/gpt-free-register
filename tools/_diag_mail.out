@@ -1,8 +1,0 @@
-账号获取 OK, email=WehnesStmarie76@outlook.com
-尝试 graph 拉信箱 (top 3)...
-异常: TypeError: _fetch_via() got an unexpected keyword argument 'folder'
-Traceback (most recent call last):
-  File "D:\devApp\GPT协议注册-0419\tools\_diag_mail.py", line 18, in <module>
-    r = _fetch_via("graph", acct, folder="Inbox", select_field="subject,receivedDateTime", top_n=3)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: _fetch_via() got an unexpected keyword argument 'folder'

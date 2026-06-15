@@ -43,25 +43,26 @@ def _random_display_name() -> str:
 
 def _prepare_registration_args() -> tuple[str, str, str]:
     """复用 CLI 的默认规则，为旧 Web 任务入口补齐注册参数。"""
-    from config import REGISTER_EMAIL, REGISTER_NAME, REGISTER_BIRTHDAY, USE_EMAIL_SERVICE
+    # 用模块属性读，支持 WebUI 热加载
+    from config import register as _r, email as _e
     from core.email_provider import acquire_email
 
-    email = REGISTER_EMAIL
-    name = REGISTER_NAME
+    email = _r.REGISTER_EMAIL
+    name = _r.REGISTER_NAME
 
     if not email:
-        if USE_EMAIL_SERVICE:
+        if _e.USE_EMAIL_SERVICE:
             email = acquire_email()
         else:
             raise RuntimeError("Web 任务入口无法交互输入邮箱，请在 config.REGISTER_EMAIL 配置邮箱")
 
     if not name:
-        if USE_EMAIL_SERVICE:
+        if _e.USE_EMAIL_SERVICE:
             name = _random_display_name()
         else:
             raise RuntimeError("Web 任务入口无法交互输入名称，请在 config.REGISTER_NAME 配置显示名")
 
-    return email, name, REGISTER_BIRTHDAY
+    return email, name, _r.REGISTER_BIRTHDAY
 
 
 def get_executor(max_workers: int | None = None) -> ThreadPoolExecutor:

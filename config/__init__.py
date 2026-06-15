@@ -65,6 +65,56 @@ from config.email import (
 from config.twofa import ENABLE_2FA
 
 
+# ---------- 热加载支持 ----------
+# WebUI 改配置后调 reload_all() 即可让所有运行时代码看到新值，无需重启进程。
+# 前提：运行时代码读配置时用 `config.<子模块>.KEY` 形式（而不是 `from config.子模块 import KEY` 把值绑死）。
+# 比如 `from config import codex; ... codex.SMS_COUNTRY`，reload 后 codex 模块对象原地更新，
+# 引用 codex.SMS_COUNTRY 立即看到新值。
+import importlib as _importlib
+
+_RELOADABLE_SUBMODULES = (
+    "config.browser",
+    "config.openai_protocol",
+    "config.proxy",
+    "config.register",
+    "config.email",
+    "config.twofa",
+    "config.flow_trigger",
+    "config.codex",
+)
+
+
+def reload_all() -> list[str]:
+    """
+    热重载所有 config 子模块，返回成功 reload 的模块名列表。
+    任何子模块 reload 失败（语法错等）会抛 ImportError，调用方自行处理。
+    """
+    import sys
+    reloaded = []
+    for name in _RELOADABLE_SUBMODULES:
+        mod = sys.modules.get(name)
+        if mod is None:
+            mod = _importlib.import_module(name)
+        else:
+            _importlib.reload(mod)
+        reloaded.append(name)
+    # 同步刷新 config 包顶层的"被绑死"常量（兼容历史 `from config import X` 用法）
+    # 注意：通过这些名字读到的是 reload 前的值，但子模块属性方式不受影响。
+    _refresh_top_level_constants()
+    return reloaded
+
+
+def _refresh_top_level_constants() -> None:
+    """把刚 reload 的子模块的常量重新拷一份到 config 包顶层。"""
+    import config as _self
+    from config import browser, openai_protocol, proxy as _proxy, register, email, twofa
+    # 简单粗暴：枚举一遍重要常量，覆盖到 _self
+    for src in (browser, openai_protocol, _proxy, register, email, twofa):
+        for k in dir(src):
+            if k.isupper() or k in ("pick_proxy",):
+                setattr(_self, k, getattr(src, k))
+
+
 __all__ = [
     # browser
     "USER_AGENT", "SEC_CH_UA", "SEC_CH_UA_PLATFORM", "SEC_CH_UA_MOBILE",

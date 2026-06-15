@@ -13,15 +13,9 @@ import logging
 # 不需要 curl_cffi 的 TLS 指纹模拟，直接用标准 requests 库。
 import requests
 
-from config.flow_trigger import (
-    ENABLE_FLOW_TRIGGER,
-    FLOW_TRIGGER_URL,
-    FLOW_TRIGGER_BEARER,
-    FLOW_TRIGGER_COOKIE,
-    FLOW_TRIGGER_PAYLOAD,
-    FLOW_TRIGGER_TIMEOUT,
-)
-from config.browser import USER_AGENT
+# 用模块属性方式读 config，支持 WebUI 热加载（config.reload_all()）。
+from config import flow_trigger as _cfg
+from config.browser import USER_AGENT  # 浏览器指纹固定，不需要热加载
 
 logger = logging.getLogger(__name__)
 
@@ -47,14 +41,14 @@ def _build_headers() -> dict:
     return {
         "Accept": "*/*",
         "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "Authorization": f"Bearer {FLOW_TRIGGER_BEARER}",
+        "Authorization": f"Bearer {_cfg.FLOW_TRIGGER_BEARER}",
         "Cache-Control": "no-cache",
         "Content-Type": "application/json",
         "Origin": "http://162.211.183.196:8888",
         "Pragma": "no-cache",
         "Referer": "http://162.211.183.196:8888/",
         "User-Agent": USER_AGENT,
-        "Cookie": FLOW_TRIGGER_COOKIE,
+        "Cookie": _cfg.FLOW_TRIGGER_COOKIE,
     }
 
 
@@ -63,15 +57,15 @@ def _send_sync(access_token: str) -> dict:
     if not access_token:
         return _flow_result(status="skipped", message="access_token 为空")
 
-    body = dict(FLOW_TRIGGER_PAYLOAD)
+    body = dict(_cfg.FLOW_TRIGGER_PAYLOAD)
     body["access_token"] = access_token
 
     try:
         resp = requests.post(
-            FLOW_TRIGGER_URL,
+            _cfg.FLOW_TRIGGER_URL,
             headers=_build_headers(),
             json=body,
-            timeout=FLOW_TRIGGER_TIMEOUT,
+            timeout=_cfg.FLOW_TRIGGER_TIMEOUT,
             verify=False,
         )
     except Exception as exc:
@@ -110,7 +104,7 @@ def trigger_flow(access_token: str) -> dict:
     Args:
         access_token: 本次注册拿到的 ChatGPT access_token
     """
-    if not ENABLE_FLOW_TRIGGER:
+    if not _cfg.ENABLE_FLOW_TRIGGER:
         return _flow_result(status="skipped", message="ENABLE_FLOW_TRIGGER=False")
 
     if not access_token:
