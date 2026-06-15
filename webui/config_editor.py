@@ -68,6 +68,27 @@ EDITABLE_FIELDS = [
         "key": "PROXY_POOL", "file": "proxy.py", "type": "list_str_multiline", "group": "代理池",
         "label": "代理池(每行一个)", "help": "每行一个代理 URL，留空行会被忽略；为空则不使用代理",
     },
+    # ---- 接码平台 ----
+    {
+        "key": "SMS_COUNTRY", "file": "codex.py", "type": "str", "group": "接码平台",
+        "label": "国家代码", "help": "GrizzlySMS 国家数字代码，常用：美国=187 / 英国=16 / 加拿大=36 / 智利=151。可在平台选号页查看",
+    },
+    {
+        "key": "SMS_SERVICE", "file": "codex.py", "type": "str", "group": "接码平台",
+        "label": "服务代码", "help": "GrizzlySMS 服务代码：OpenAI=dr。一般不用改",
+    },
+    {
+        "key": "SMS_MAX_RETRIES", "file": "codex.py", "type": "int", "group": "接码平台",
+        "label": "换号重试次数", "help": "一个号收不到短信/被OpenAI拒时换下一个号，最多重试几次",
+    },
+    {
+        "key": "SMS_CODE_WAIT", "file": "codex.py", "type": "int", "group": "接码平台",
+        "label": "单号等短信(秒)", "help": "单个号等待短信到达的最长秒数，超时则换号",
+    },
+    {
+        "key": "SMS_API_KEY", "file": "codex.py", "type": "str", "group": "接码平台",
+        "label": "API 密钥", "help": "GrizzlySMS 后台→设置 获取的 API key",
+    },
 ]
 
 _FIELD_BY_KEY = {f["key"]: f for f in EDITABLE_FIELDS}

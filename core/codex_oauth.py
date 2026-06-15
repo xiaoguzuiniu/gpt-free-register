@@ -504,8 +504,11 @@ def _parse_id_token(id_token: str) -> dict:
 
     auth_claim = claims.get("https://api.openai.com/auth", {}) or {}
     profile_claim = claims.get("https://api.openai.com/profile", {}) or {}
+    # OpenAI 新版 id_token 的 email 在顶层 claim；旧版/CLIProxyAPI 实现里在 profile_claim。
+    # 顶层优先，否则回退 profile_claim，避免落盘的 codex-邮箱.json 里 email 字段为空。
+    email_value = claims.get("email") or profile_claim.get("email", "")
     return {
-        "email": profile_claim.get("email", ""),
+        "email": email_value,
         "account_id": auth_claim.get("chatgpt_account_id", ""),
         "plan_type": auth_claim.get("chatgpt_plan_type", ""),
     }
