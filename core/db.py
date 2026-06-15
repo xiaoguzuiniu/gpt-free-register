@@ -676,6 +676,18 @@ def release_outlook(email: str, status: str = "available", note: str | None = No
         _save_outlook(rows)
 
 
+def delete_outlook(email: str) -> bool:
+    """从邮箱池彻底删除一个邮箱（按 email 匹配）。返回是否删到。"""
+    with _LOCK:
+        rows = _load_outlook()
+        target = (email or "").lower()
+        new_rows = [r for r in rows if (r.get("email") or "").lower() != target]
+        if len(new_rows) == len(rows):
+            return False
+        _save_outlook(new_rows)
+        return True
+
+
 def list_outlook_pool(status: str | None = None, limit: int = 500) -> list[dict]:
     with _LOCK:
         account_by_email = {

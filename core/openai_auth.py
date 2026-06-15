@@ -18,6 +18,41 @@ from core.sentinel_runner import generate_sentinel_token
 logger = logging.getLogger(__name__)
 
 
+class AccountUnusableError(Exception):
+    """
+    邮箱对应的 OpenAI 账号已废（删除/停用/封禁），再试也是同样结果。
+
+    与普通网络/风控错误区分：这类错误意味着这个邮箱素材本身不可用，
+    上层应把邮箱标成 failed 直接剔除，而不是放回 available 反复重试。
+
+    携带 error_code 便于日志与排查（如 account_deactivated）。
+    """
+
+    def __init__(self, message: str, error_code: str = ""):
+        super().__init__(message)
+        self.error_code = error_code
+
+
+# 远端返回这些 error code 时，判定邮箱素材已废，不再重试。
+_ACCOUNT_DEAD_CODES = frozenset({
+    "account_deactivated",   # 账号已删除/停用
+    "account_deleted",
+    "account_banned",
+})
+
+
+def _extract_error_code(resp) -> str:
+    """从响应体 JSON 里抽 error.code（拿不到返回空串）。"""
+    try:
+        payload = resp.json()
+    except Exception:
+        return ""
+    err = payload.get("error") if isinstance(payload, dict) else None
+    if isinstance(err, dict):
+        return str(err.get("code") or "")
+    return ""
+
+
 # 步骤4 网络层临时性错误（代理抽风 / TLS 握手失败 / 重置等）的重试参数
 _FOLLOW_AUTH_MAX_ATTEMPTS = 3
 _FOLLOW_AUTH_BACKOFF_BASE = 2.0  # 第 N 次重试前等 2^(N-1) 秒
@@ -289,6 +324,12 @@ def validate_email_otp(session: BrowserSession, code: str, sentinel_header: str 
     if resp.status_code != 200:
         logger.error(f"[步骤10] 请求失败, 状态码: {resp.status_code}")
         logger.error(f"[步骤10] 响应内容: {resp.text}")
+        # 先看是不是"账号已废"——这类邮箱再试也没用，单独抛出让上层标 failed
+        err_code = _extract_error_code(resp)
+        if err_code in _ACCOUNT_DEAD_CODES:
+            raise AccountUnusableError(
+                f"账号已废弃（{err_code}），邮箱不可再用", error_code=err_code,
+            )
         resp.raise_for_status()
 
     data = resp.json()

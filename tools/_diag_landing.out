@@ -1,0 +1,8 @@
+email=JeanineWetzler930@outlook.com
+proxy=http://127.0.0.1:7897
+authorize_url head=https://auth.openai.com/api/accounts/authorize?client_id=app_X8zY6vW2pQ9tR3dE7nK1jL5gH&scope=openid%
+最终落点: https://auth.openai.com/email-verification
+status: 200
+页面含关键词: ['email-verification', 'create-account/password', 'login', 'code']
+body head 300: <!DOCTYPE html><html lang="ja-JP"><head><meta charSet="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="dd-trace-id" content="8677585965865605534"/><meta name="dd-trace-time" content="1781446579540"/><link rel="icon" type="image/svg+xml" href="https://auth-c
+已释放邮箱

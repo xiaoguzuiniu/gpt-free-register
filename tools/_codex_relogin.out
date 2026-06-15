@@ -1,0 +1,55 @@
+22:24:31 [INFO] ============================================================
+22:24:31 [INFO] [模式B] 用已注册号 JeanineWetzler930@outlook.com 重新登录，验证 Codex 授权
+22:24:31 [INFO] ============================================================
+22:24:31 [INFO] [模式B] session 已建立，代理=http://127.0.0.1:7897，device_id=71f5c46d-4ff7-454d-a0d4-0ca9b806a2f1
+22:24:34 [INFO] [2FA] 重认证 CSRF: d58db45d77dc0c1eac59...
+22:24:34 [INFO] [2FA] 发起重认证 signin/openai...
+22:24:34 [INFO] [模式B] reauth authorize URL 已拿到
+22:24:35 [INFO] [2FA] 跟随 authorize URL，触发 OTP 发送...
+22:24:39 [INFO] [2FA] 落点 URL: https://auth.openai.com/email-verification
+22:24:39 [INFO] [模式B] 已跟随 authorize URL，等待邮箱 OTP...
+22:24:41 [INFO] [Outlook] 开始轮询 JeanineWetzler930@outlook.com 的收件箱（双协议 graph + imap），最长 90s, settle=5s...
+22:25:11 [INFO] [Outlook] 首次锁定 OTP=521304, ts=2026-06-14T14:24:39Z, subject='ChatGPT 用の一時ログインコード', 等 5s 看是否有更晚邮件...
+22:25:11 [INFO] [Outlook] 已锁定候选 OTP=521304，等 settle 中（剩余 settle ~5s, 总剩余 59s）...
+22:25:46 [WARNING] [Outlook] imap 请求异常: Timeout: Failed to perform, curl: (28) Operation timed out after 30009 milliseconds with 307784 bytes received. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+22:25:46 [INFO] [Outlook] settle 完成，返回 OTP=521304, protocol=graph, subject='ChatGPT 用の一時ログインコード'
+22:25:46 [INFO] [2FA] 提交重认证 OTP: 521304
+22:25:48 [INFO] [模式B] OTP 验证通过，刷新 session-token cookie...
+22:25:49 [INFO] [2FA] 跟随 continue_url，刷新 session-token cookie...
+22:25:55 [INFO] [Session] 拉取 ChatGPT session 信息...
+22:26:00 [INFO] [Session] 成功，user_id=user-JDai8SXSqZ3fy18IxQokD8T5, email=JeanineWetzler930@outlook.com, plan=free, mfa=False
+22:26:00 [INFO] [2FA] 新 accessToken（含新鲜 pwd_auth_time）: eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1...
+22:26:00 [INFO] [模式B] 重建登录态成功，access_token=eyJhbGciOiJSUzI1NiIsImtp...
+22:26:00 [INFO] ------------------------------------------------------------
+22:26:00 [INFO] [模式B] 登录态已就绪，开始 Codex 授权
+22:26:00 [INFO] ------------------------------------------------------------
+22:26:00 [INFO] [Codex] code_verifier 长度=128, code_challenge 长度=43, state=agRB26-LYrq6...
+22:26:00 [INFO] [Codex] 授权 URL:
+    https://auth.openai.com/oauth/authorize?client_id=app_EMoamEEZ73f0CkXaXp7hrann&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&scope=openid+email+profile+offline_access&state=agRB26-LYrq6fSWbIY6f4pPIbZCdPoykgwBcTdW2vhU&code_challenge=QzNGJTYqloPSHR2wa3LioiMMnCumnuOh9X8R0prYpew&code_challenge_method=S256&prompt=none&id_token_add_organizations=true&codex_cli_simplified_flow=true
+22:26:00 [INFO] [Codex] 发起授权请求 (prompt=login, 尝试 1/3)
+22:26:02 [INFO] [Codex] 落到 /choose-an-account，自动选择账号继续
+22:26:02 [ERROR] ============================================================
+22:26:02 [ERROR] ❌ [FAIL] Codex OAuth 链路验证失败
+22:26:02 [ERROR]    NameError: name 're' is not defined
+22:26:02 [ERROR] ============================================================
+Traceback (most recent call last):
+  File "D:\devApp\GPT协议注册-0419\tools\test_codex_oauth.py", line 249, in _run_codex_verbose
+    code = request_codex_authorize(session, state, code_challenge, email)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\devApp\GPT协议注册-0419\core\codex_oauth.py", line 180, in request_codex_authorize
+    code = _follow_codex_redirects_with_login(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\devApp\GPT协议注册-0419\core\codex_oauth.py", line 244, in _follow_codex_redirects_with_login
+    resp = _submit_choose_account(session, resp)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\devApp\GPT协议注册-0419\core\codex_oauth.py", line 427, in _submit_choose_account
+    next_data = _extract_next_data(body)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\devApp\GPT协议注册-0419\core\codex_oauth.py", line 477, in _extract_next_data
+    m = re.search(
+        ^^
+NameError: name 're' is not defined
+
+[exit code = 1]
+
+[exit code = 1]

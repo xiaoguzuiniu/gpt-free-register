@@ -1,0 +1,37 @@
+11:59:27 [INFO] [reg-worker_0] [Job 1] 开始注册任务
+11:59:27 [INFO] [reg-worker_0] [Outlook] 选中账号: JeanineWetzler930@outlook.com（DB id=1）
+11:59:27 [INFO] [reg-worker_0] [注册] 开始：JeanineWetzler930@outlook.com，代理=http://...sid-***...@http://127.0.0.1:7897
+11:59:27 [INFO] [reg-worker_0] [步骤1] 获取 OAuth Providers...
+11:59:28 [INFO] [reg-worker_0] [步骤1] 成功获取 4 个 providers: ['openai', 'openai-dev', 'openai-sidetron', 'openai-sidetron-dev']
+11:59:28 [INFO] [reg-worker_0] [步骤2] 获取 CSRF Token...
+11:59:28 [INFO] [reg-worker_0] [步骤2] 获取 CSRF Token 成功: 5a2f3cba7919d47432fe...
+11:59:29 [INFO] [reg-worker_0] [步骤3] 发起 OAuth Signin 请求, 邮箱: JeanineWetzler930@outlook.com
+11:59:29 [INFO] [reg-worker_0] [步骤3] 获取 authorize URL 成功
+11:59:30 [INFO] [reg-worker_0] [步骤4] 跟随 authorize URL 重定向 (尝试 1/3)...
+11:59:32 [INFO] [reg-worker_0] [步骤4] 重定向完成, 最终URL: https://auth.openai.com/email-verification
+11:59:34 [INFO] [reg-worker_0] [Sentinel] 请求 sentinel token, flow=authorize_continue
+11:59:35 [INFO] [reg-worker_0] [Sentinel] 获取 sentinel token 成功, persona=chatgpt-noauth
+11:59:35 [INFO] [reg-worker_0] [Sentinel] 需要 PoW: seed=0.6293575388060553, difficulty=073b23
+11:59:35 [INFO] [reg-worker_0] [Sentinel] 服务端要求项: ['turnstile', 'so', 'pow']
+11:59:35 [INFO] [reg-worker_0] [SentinelRunner] 调用 Node 生成 token, flow=authorize_continue
+11:59:36 [INFO] [reg-worker_0] [SentinelRunner] token 生成成功, flow=authorize_continue, 包含 turnstile=True, 包含 so=False, 字段: {'p': 605, 't': 112, 'c': 2212, 'id': 36, 'flow': 18}
+11:59:36 [INFO] [reg-worker_0] [OTP] 等待验证码：JeanineWetzler930@outlook.com
+11:59:36 [INFO] [reg-worker_0] [Outlook] 开始轮询 JeanineWetzler930@outlook.com 的收件箱（双协议 graph + imap），最长 90s, settle=5s...
+12:00:11 [WARNING] [reg-worker_0] [Outlook] imap 请求异常: Timeout: Failed to perform, curl: (28) Operation timed out after 30008 milliseconds with 229328 bytes received. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+12:00:11 [INFO] [reg-worker_0] [Outlook] 首次锁定 OTP=593229, ts=2026-06-15T03:59:31Z, subject='ChatGPT 用の一時ログインコード', 等 5s 看是否有更晚邮件...
+12:00:11 [INFO] [reg-worker_0] [Outlook] 已锁定候选 OTP=593229，等 settle 中（剩余 settle ~5s, 总剩余 54s）...
+12:00:57 [WARNING] [reg-worker_0] [Outlook] imap 请求异常: Timeout: Failed to perform, curl: (28) Operation timed out after 30012 milliseconds with 131094 bytes received. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+12:00:57 [INFO] [reg-worker_0] [Outlook] settle 完成，返回 OTP=593229, protocol=graph, subject='ChatGPT 用の一時ログインコード'
+12:00:57 [INFO] [reg-worker_0] [步骤10] 提交邮箱验证码: 593229
+12:00:58 [ERROR] [reg-worker_0] [步骤10] 请求失败, 状态码: 403
+12:00:58 [ERROR] [reg-worker_0] [步骤10] 响应内容: {
+  "error": {
+    "message": "You do not have an account because it has been deleted or deactivated. If you believe this was an error, please contact us through our help center at help.openai.com.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "account_deactivated",
+    "redirect_uri": "https://chatgpt.com/auth/login_with?callback_path=/"
+  }
+}
+12:00:58 [ERROR] [reg-worker_0] [失败] JeanineWetzler930@outlook.com: HTTPError: HTTP Error 403: 
+12:00:58 [ERROR] [reg-worker_0] [Job 1] 失败: HTTP Error 403: 

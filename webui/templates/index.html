@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPT 注册控制台</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #eef3f8; --surface: #ffffff; --soft: #f7f9fc; --text: #172033;
+      --muted: #667085; --line: #d9e2ec; --blue: #2563eb; --green: #16803c;
+      --red: #c2413a; --amber: #b7791f;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    h1, h2, h3, p { margin: 0; }
+    header {
+      padding: 18px 28px; background: #101827; color: #fff;
+      display: flex; justify-content: space-between; gap: 20px; align-items: center; flex-wrap: wrap;
+    }
+    header h1 { font-size: 22px; }
+    header .meta { margin-top: 4px; color: #b8c7d9; font-size: 12px; }
+    .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stat {
+      min-width: 96px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.16);
+      border-radius: 8px; background: rgba(255,255,255,.08);
+    }
+    .stat span { display: block; color: #b8c7d9; font-size: 11px; }
+    .stat strong { display: block; margin-top: 3px; font-size: 18px; }
+    nav {
+      display: flex; gap: 4px; padding: 0 28px; background: #1b2538;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    nav button {
+      border: none; background: transparent; color: #b8c7d9; font: inherit; font-weight: 700;
+      padding: 12px 18px; cursor: pointer; border-bottom: 3px solid transparent;
+    }
+    nav button:hover { color: #fff; }
+    nav button.active { color: #fff; border-bottom-color: var(--blue); }
+    main { width: min(1500px, calc(100vw - 32px)); margin: 16px auto 40px; display: grid; gap: 16px; }
+    section.card {
+      border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+      box-shadow: 0 8px 22px rgba(15,23,42,.06);
+    }
+    .head { padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--soft); }
+    .head p { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .body { padding: 16px; }
+    label.fld { display: block; margin-bottom: 14px; font-size: 13px; font-weight: 700; }
+    label.fld .hint { display: block; margin-top: 3px; color: var(--muted); font-weight: 400; font-size: 12px; }
+    input, textarea, select {
+      width: 100%; min-height: 38px; border: 1px solid var(--line); border-radius: 6px;
+      padding: 8px 12px; font: inherit; margin-top: 6px;
+    }
+    textarea { min-height: 120px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; resize: vertical; }
+    .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+    .row > * { flex: 1; min-width: 160px; }
+    button.btn {
+      min-height: 38px; border: 1px solid var(--line); border-radius: 6px; background: #fff;
+      padding: 0 16px; font-weight: 700; cursor: pointer;
+    }
+    button.btn:hover { background: var(--soft); }
+    button.btn.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+    button.btn.good { border-color: #2f855a; background: #edf8f1; color: #166534; }
+    button.btn:disabled { color: #98a2b3; cursor: not-allowed; background: #f2f4f7; border-color: var(--line); }
+    .toolbar { padding: 14px 16px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .search { flex: 1; min-width: min(420px, 100%); }
+    .search input { margin-top: 0; }
+    .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 9px 12px; border-bottom: 1px solid #edf1f5; text-align: left; white-space: nowrap; vertical-align: middle; }
+    th { position: sticky; top: 0; background: #fbfcfe; color: #475467; z-index: 1; font-size: 12px; }
+    tr:hover td { background: #fbfdff; }
+    .main-cell { font-weight: 700; }
+    .sub-cell { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .mono { font-family: ui-monospace, "JetBrains Mono", Consolas, monospace; font-size: 12px; }
+    .muted { color: var(--muted); }
+    .pill { display: inline-flex; min-width: 48px; justify-content: center; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .status-available, .status-pending { color: var(--blue); background: #eef4ff; }
+    .status-used { color: #475467; background: #f2f4f7; }
+    .status-failed { color: var(--red); background: #fff0ef; }
+    .status-running { color: var(--amber); background: #fff7e6; }
+    .status-success { color: var(--green); background: #e9f7ef; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .actions button { min-height: 28px; border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 0 10px; font-weight: 700; cursor: pointer; font-size: 12px; }
+    .actions button.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .actions button.good { border-color: #2f855a; background: #edf8f1; color: #166534; }
+    .banner { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
+    .banner.warn { background: #fff7e6; color: #92600a; border: 1px solid #f3d99b; }
+    .banner.info { background: #eef4ff; color: #1d4ed8; border: 1px solid #c3d4fb; }
+    .log {
+      margin-top: 8px; background: #0c1322; color: #cbd5e1; border-radius: 6px; padding: 12px;
+      font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap;
+      max-height: 320px; overflow: auto; line-height: 1.5;
+    }
+    .hidden { display: none !important; }
+    #toast {
+      position: fixed; right: 18px; bottom: 18px; padding: 10px 14px; border-radius: 8px;
+      background: #101827; color: #fff; box-shadow: 0 14px 30px rgba(15,23,42,.24);
+      opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .18s ease, transform .18s ease;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>GPT 注册控制台</h1>
+    <p class="meta">本地 Web 控制台 · 数据更新于 <span id="updatedAt">-</span></p>
+  </div>
+  <div class="stats">
+    <div class="stat"><span>已注册</span><strong id="statAccounts">0</strong></div>
+    <div class="stat"><span>邮箱总数</span><strong id="statOutlook">0</strong></div>
+    <div class="stat"><span>可用</span><strong id="statAvailable">0</strong></div>
+    <div class="stat"><span>已用</span><strong id="statUsed">0</strong></div>
+    <div class="stat"><span>失败</span><strong id="statFailed">0</strong></div>
+  </div>
+</header>
+
+<nav>
+  <button data-tab="register" class="active">注册</button>
+  <button data-tab="accounts">账号</button>
+  <button data-tab="outlook">邮箱池</button>
+  <button data-tab="config">配置</button>
+</nav>
+
+<main>
+  <!-- ============ 注册 ============ -->
+  <div id="tab-register">
+    <section class="card">
+      <div class="head"><h2>启动批量注册</h2><p>从邮箱池自动领取邮箱并并发注册，下方实时查看任务进度与日志。</p></div>
+      <div class="body">
+        <div id="regWarn"></div>
+        <div class="row">
+          <div>
+            <label class="fld">注册数量
+              <input id="regCount" type="number" min="1" max="200" value="1">
+            </label>
+          </div>
+          <div>
+            <label class="fld">并发线程数
+              <input id="regWorkers" type="number" min="1" max="16" value="3">
+            </label>
+          </div>
+          <div style="flex:0 0 auto;">
+            <button class="btn primary" id="btnStart">开始注册</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="toolbar">
+        <div><h2>任务列表</h2></div>
+        <div class="buttons"><button class="btn" id="btnRefreshJobs">手动刷新</button></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>状态</th><th>邮箱</th><th>开始</th><th>完成</th><th>错误</th><th>操作</th></tr></thead>
+          <tbody id="jobsBody"></tbody>
+        </table>
+      </div>
+      <div class="body hidden" id="logPanel">
+        <h3>任务 #<span id="logJobId"></span> 日志 <button class="btn" id="btnCloseLog" style="float:right;min-height:28px;">关闭</button></h3>
+        <div class="log" id="logContent">加载中…</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ 账号 ============ -->
+  <div id="tab-accounts" class="hidden">
+    <section class="card">
+      <div class="toolbar">
+        <div class="search"><input id="qAccounts" placeholder="搜索邮箱、token、来源…"></div>
+        <div class="buttons">
+          <button class="btn primary" id="copyAllTokens">复制全部 Token</button>
+          <button class="btn good" id="copyAllLines">复制全部整行</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>邮箱</th><th>来源</th><th>Token</th><th>2FA</th><th>创建时间</th><th>操作</th></tr></thead>
+          <tbody id="accountsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ 邮箱池 ============ -->
+  <div id="tab-outlook" class="hidden">
+    <section class="card">
+      <div class="head"><h2>导入邮箱素材</h2><p>每行一个：邮箱----密码----clientId----refreshToken（---- 或 ==== 分隔均可），已存在的邮箱会自动跳过。</p></div>
+      <div class="body">
+        <div id="importResult"></div>
+        <textarea id="importText" placeholder="email----password----clientId----refreshToken"></textarea>
+        <div style="margin-top:10px;"><button class="btn primary" id="btnImport">导入到邮箱池</button></div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="toolbar">
+        <div class="search"><input id="qOutlook" placeholder="搜索邮箱、状态…"></div>
+        <div class="buttons">
+          <button class="btn" id="copyAllEmails">复制全部邮箱素材</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>邮箱</th><th>状态</th><th>Token</th><th>已用时间</th><th>操作</th></tr></thead>
+          <tbody id="outlookBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ 配置 ============ -->
+  <div id="tab-config" class="hidden">
+    <section class="card">
+      <div class="head"><h2>运行配置</h2><p>仅开放运行时安全的开关与数值。协议级常量（client_id / sentinel 版本）不在此处，避免误改废号。</p></div>
+      <div class="body">
+        <div id="configBanner" class="banner info">修改后点"保存"，<b>需重启 Web 服务</b>才会生效。</div>
+        <div id="configForm">加载中…</div>
+        <div style="margin-top:8px;"><button class="btn primary" id="btnSaveConfig">保存配置</button></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+let copySeq = 0;
+const copyStore = new Map();
+let ACCOUNTS = [], OUTLOOK = [], CONFIG = [];
+let activeLogJob = null, logTimer = null, jobsTimer = null;
+
+// ---------- 工具 ----------
+function fmt(v) { return v == null || v === '' ? '-' : String(v); }
+function esc(v) { return fmt(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function short(v, n=40) { const s = v || ''; return s.length > n ? s.slice(0,n)+'…' : s; }
+function copyId(v) { if (!v) return ''; const id = 'c'+(++copySeq); copyStore.set(id, v); return id; }
+function cbtn(label, value, cls='') { const id = copyId(value); return `<button class="${cls}" data-copy-id="${id}" ${id?'':'disabled'}>${label}</button>`; }
+function pill(status) {
+  const map = { available:'可用', used:'已用', failed:'失败', pending:'排队', running:'运行中', success:'成功' };
+  return `<span class="pill status-${esc(status)}">${esc(map[status]||status||'-')}</span>`;
+}
+function showToast(t) { const el=$('#toast'); el.textContent=t; el.classList.add('show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>el.classList.remove('show'),1400); }
+async function copyText(text) {
+  if (!text) return;
+  try {
+    if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+    else { const a=document.createElement('textarea'); a.value=text; a.style.position='fixed'; a.style.opacity='0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); }
+    showToast('已复制');
+  } catch(e) { showToast('复制失败'); }
+}
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP '+r.status));
+  return j;
+}
+
+// ---------- Tab 切换 ----------
+$$('nav button').forEach(b => b.addEventListener('click', () => {
+  $$('nav button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  ['register','accounts','outlook','config'].forEach(t => $('#tab-'+t).classList.toggle('hidden', t !== b.dataset.tab));
+  if (b.dataset.tab === 'accounts') loadAccounts();
+  if (b.dataset.tab === 'outlook') loadOutlook();
+  if (b.dataset.tab === 'config') loadConfig();
+  if (b.dataset.tab === 'register') refreshJobs();
+}));
+
+// ---------- 概览 ----------
+async function loadSummary() {
+  try {
+    const s = await api('/api/summary');
+    $('#statAccounts').textContent = s.accounts;
+    $('#statOutlook').textContent = s.outlook_total;
+    $('#statAvailable').textContent = s.outlook_available;
+    $('#statUsed').textContent = s.outlook_used;
+    $('#statFailed').textContent = s.outlook_failed;
+    $('#updatedAt').textContent = new Date().toLocaleTimeString();
+  } catch(e) {}
+}
+
+// ---------- 注册 / 任务 ----------
+$('#btnStart').addEventListener('click', async () => {
+  const count = parseInt($('#regCount').value || '1', 10);
+  const workers = parseInt($('#regWorkers').value || '3', 10);
+  $('#btnStart').disabled = true;
+  try {
+    const r = await api('/api/jobs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({count, workers}) });
+    $('#regWarn').innerHTML = r.warning ? `<div class="banner warn">${esc(r.warning)}</div>` : `<div class="banner info">已提交 ${r.submitted} 个任务</div>`;
+    refreshJobs();
+  } catch(e) { $('#regWarn').innerHTML = `<div class="banner warn">${esc(e.message)}</div>`; }
+  finally { $('#btnStart').disabled = false; }
+});
+$('#btnRefreshJobs').addEventListener('click', refreshJobs);
+
+async function refreshJobs() {
+  try {
+    const jobs = await api('/api/jobs?limit=100');
+    $('#jobsBody').innerHTML = jobs.map(j => `
+      <tr>
+        <td class="muted">#${esc(j.id)}</td>
+        <td>${pill(j.status)}</td>
+        <td>${esc(j.email || '-')}</td>
+        <td class="muted">${esc(j.started_at || '-')}</td>
+        <td class="muted">${esc(j.completed_at || '-')}</td>
+        <td class="muted">${esc(short(j.error_message || '', 40))}</td>
+        <td class="actions"><button data-log-job="${esc(j.id)}">日志</button></td>
+      </tr>`).join('') || '<tr><td colspan="7" class="muted">暂无任务</td></tr>';
+    loadSummary();
+  } catch(e) {}
+}
+
+$('#jobsBody').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-log-job]');
+  if (!t) return;
+  openLog(parseInt(t.dataset.logJob, 10));
+});
+$('#btnCloseLog').addEventListener('click', () => { activeLogJob = null; clearInterval(logTimer); $('#logPanel').classList.add('hidden'); });
+
+function openLog(jobId) {
+  activeLogJob = jobId;
+  $('#logJobId').textContent = jobId;
+  $('#logPanel').classList.remove('hidden');
+  $('#logContent').textContent = '加载中…';
+  pollLog();
+  clearInterval(logTimer);
+  logTimer = setInterval(pollLog, 2000);
+}
+async function pollLog() {
+  if (activeLogJob == null) return;
+  try {
+    const r = await api(`/api/jobs/${activeLogJob}/log`);
+    const c = $('#logContent');
+    const atBottom = c.scrollTop + c.clientHeight >= c.scrollHeight - 30;
+    c.textContent = r.log || '(暂无日志)';
+    if (atBottom) c.scrollTop = c.scrollHeight;
+    if (r.job && ['success','failed'].includes(r.job.status)) clearInterval(logTimer);
+  } catch(e) {}
+}
+
+// ---------- 账号 ----------
+async function loadAccounts() {
+  try { ACCOUNTS = await api('/api/accounts?limit=500'); renderAccounts(); } catch(e) {}
+}
+function renderAccounts() {
+  const q = $('#qAccounts').value.trim().toLowerCase();
+  const rows = ACCOUNTS.filter(r => !q || Object.values(r).join('\n').toLowerCase().includes(q));
+  $('#accountsBody').innerHTML = rows.map(r => `
+    <tr>
+      <td class="muted">#${esc(r.id)}</td>
+      <td><div class="main-cell">${esc(r.email)}</div><div class="sub-cell">${esc(r.user_name || '-')}</div></td>
+      <td>${esc(r.email_source || '-')}</td>
+      <td><span class="mono">${esc(short(r.access_token || '', 42))}</span></td>
+      <td>${r.totp_secret ? '已启用' : '<span class="muted">未启用</span>'}</td>
+      <td class="muted">${esc(r.created_at || '-')}</td>
+      <td class="actions">${cbtn('复制Token', r.access_token, 'primary')} ${cbtn('复制整行', r.copy_line, 'good')}</td>
+    </tr>`).join('') || '<tr><td colspan="7" class="muted">暂无账号</td></tr>';
+}
+$('#qAccounts').addEventListener('input', renderAccounts);
+$('#copyAllTokens').addEventListener('click', () => copyText(ACCOUNTS.map(r=>r.access_token).filter(Boolean).join('\n')));
+$('#copyAllLines').addEventListener('click', () => copyText(ACCOUNTS.map(r=>r.copy_line).filter(Boolean).join('\n')));
+
+// ---------- 邮箱池 ----------
+async function loadOutlook() {
+  try { OUTLOOK = await api('/api/outlook?limit=500'); renderOutlook(); } catch(e) {}
+}
+function renderOutlook() {
+  const q = $('#qOutlook').value.trim().toLowerCase();
+  const rows = OUTLOOK.filter(r => !q || Object.values(r).join('\n').toLowerCase().includes(q));
+  $('#outlookBody').innerHTML = rows.map(r => `
+    <tr>
+      <td><div class="main-cell">${esc(r.email)}</div><div class="sub-cell mono">${esc(short(r.copy_line, 70))}</div></td>
+      <td>${pill(r.status)}</td>
+      <td><span class="mono">${esc(short(r.access_token || '', 36) || '未生成')}</span></td>
+      <td class="muted">${esc(r.used_at || '-')}</td>
+      <td class="actions">
+        ${cbtn('复制邮箱', r.copy_line)} ${cbtn('复制Token', r.access_token, 'primary')} ${cbtn('复制整行', r.account_copy_line, 'good')}
+        ${r.status === 'failed'
+          ? `<button data-pool-act="available" data-email="${esc(r.email)}">恢复可用</button>`
+          : `<button data-pool-act="failed" data-email="${esc(r.email)}">标失败</button>`}
+        <button data-pool-act="delete" data-email="${esc(r.email)}" style="border-color:#e7a3a0;color:#b3261e;">删除</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="5" class="muted">邮箱池为空</td></tr>';
+}
+$('#qOutlook').addEventListener('input', renderOutlook);
+$('#copyAllEmails').addEventListener('click', () => copyText(OUTLOOK.map(r=>r.copy_line).filter(Boolean).join('\n')));
+$('#outlookBody').addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-pool-act]');
+  if (!t) return;
+  const { poolAct, email } = t.dataset;
+  try {
+    if (poolAct === 'delete') {
+      if (!confirm(`确定从邮箱池删除 ${email}？此操作不可撤销。`)) return;
+      await api('/api/outlook/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email}) });
+      showToast('已删除');
+    } else {
+      await api('/api/outlook/status', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, status: poolAct, note: poolAct==='failed'?'手动标记失败':'手动恢复可用'}) });
+      showToast(poolAct === 'failed' ? '已标失败' : '已恢复可用');
+    }
+    loadOutlook(); loadSummary();
+  } catch(err) { showToast('操作失败: ' + err.message); }
+});
+$('#btnImport').addEventListener('click', async () => {
+  const text = $('#importText').value;
+  if (!text.trim()) { showToast('请粘贴邮箱素材'); return; }
+  $('#btnImport').disabled = true;
+  try {
+    const r = await api('/api/outlook/import', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text}) });
+    $('#importResult').innerHTML = `<div class="banner info">解析 ${r.parsed} 行，新增 ${r.inserted}，跳过 ${r.skipped}</div>`;
+    $('#importText').value = '';
+    loadOutlook(); loadSummary();
+  } catch(e) { $('#importResult').innerHTML = `<div class="banner warn">${esc(e.message)}</div>`; }
+  finally { $('#btnImport').disabled = false; }
+});
+
+// ---------- 配置 ----------
+async function loadConfig() {
+  try {
+    CONFIG = await api('/api/config');
+    const groups = {};
+    CONFIG.forEach(f => { (groups[f.group] = groups[f.group] || []).push(f); });
+    let html = '';
+    for (const [group, fields] of Object.entries(groups)) {
+      html += `<h3 style="margin:16px 0 10px;">${esc(group)}</h3>`;
+      for (const f of fields) {
+        html += `<label class="fld">${esc(f.label)}<span class="hint">${esc(f.help)} · <span class="mono">${esc(f.key)}</span></span>`;
+        if (f.type === 'bool') {
+          html += `<select data-key="${esc(f.key)}"><option value="true"${f.value?' selected':''}>开启 (True)</option><option value="false"${!f.value?' selected':''}>关闭 (False)</option></select>`;
+        } else if (f.type === 'int') {
+          html += `<input type="number" data-key="${esc(f.key)}" value="${esc(f.value)}">`;
+        } else if (f.type === 'list_str_multiline') {
+          html += `<textarea data-key="${esc(f.key)}">${esc((f.value||[]).join('\n'))}</textarea>`;
+        } else {
+          html += `<input type="text" data-key="${esc(f.key)}" value="${esc(f.value)}">`;
+        }
+        html += `</label>`;
+      }
+    }
+    $('#configForm').innerHTML = html;
+  } catch(e) { $('#configForm').innerHTML = `<div class="banner warn">${esc(e.message)}</div>`; }
+}
+$('#btnSaveConfig').addEventListener('click', async () => {
+  const updates = {};
+  $$('#configForm [data-key]').forEach(el => {
+    const f = CONFIG.find(x => x.key === el.dataset.key);
+    if (!f) return;
+    if (f.type === 'list_str_multiline') updates[f.key] = el.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    else if (f.type === 'bool') updates[f.key] = el.value === 'true';
+    else if (f.type === 'int') updates[f.key] = parseInt(el.value || '0', 10);
+    else updates[f.key] = el.value;
+  });
+  $('#btnSaveConfig').disabled = true;
+  try {
+    const r = await api('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({updates}) });
+    $('#configBanner').className = 'banner warn';
+    $('#configBanner').innerHTML = `已保存 ${r.updated.length} 项。<b>请重启 Web 服务（关闭终端里的 python web.py 再重新运行）后生效。</b>`;
+    showToast('配置已保存');
+  } catch(e) { showToast('保存失败: ' + e.message); }
+  finally { $('#btnSaveConfig').disabled = false; }
+});
+
+// ---------- 全局复制委托 ----------
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-copy-id]');
+  if (!t) return;
+  copyText(copyStore.get(t.dataset.copyId));
+});
+
+// ---------- 初始化 ----------
+loadSummary();
+refreshJobs();
+jobsTimer = setInterval(() => { if (!$('#tab-register').classList.contains('hidden')) refreshJobs(); }, 3000);
+setInterval(loadSummary, 5000);
+</script>
+</body>
+</html>

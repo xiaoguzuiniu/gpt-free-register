@@ -1,0 +1,53 @@
+13:43:59 [INFO] [reg-worker_0] [Job 4] 开始注册任务
+13:43:59 [INFO] [reg-worker_0] [Outlook] 选中账号: CaretakerBecherer9058@hotmail.com（DB id=4）
+13:43:59 [INFO] [reg-worker_0] [注册] 开始：CaretakerBecherer9058@hotmail.com，代理=http://...sid-***...@http://127.0.0.1:7897
+13:43:59 [INFO] [reg-worker_0] [步骤1] 获取 OAuth Providers...
+13:44:00 [INFO] [reg-worker_0] [步骤1] 成功获取 4 个 providers: ['openai', 'openai-dev', 'openai-sidetron', 'openai-sidetron-dev']
+13:44:01 [INFO] [reg-worker_0] [步骤2] 获取 CSRF Token...
+13:44:01 [INFO] [reg-worker_0] [步骤2] 获取 CSRF Token 成功: d9fef1c08846026385ed...
+13:44:01 [INFO] [reg-worker_0] [步骤3] 发起 OAuth Signin 请求, 邮箱: CaretakerBecherer9058@hotmail.com
+13:44:02 [INFO] [reg-worker_0] [步骤3] 获取 authorize URL 成功
+13:44:02 [INFO] [reg-worker_0] [步骤4] 跟随 authorize URL 重定向 (尝试 1/3)...
+13:44:04 [INFO] [reg-worker_0] [步骤4] 重定向完成, 最终URL: https://auth.openai.com/email-verification
+13:44:06 [INFO] [reg-worker_0] [Sentinel] 请求 sentinel token, flow=authorize_continue
+13:44:07 [INFO] [reg-worker_0] [Sentinel] 获取 sentinel token 成功, persona=chatgpt-noauth
+13:44:07 [INFO] [reg-worker_0] [Sentinel] 需要 PoW: seed=0.5411178041436367, difficulty=061a80
+13:44:07 [INFO] [reg-worker_0] [Sentinel] 服务端要求项: ['turnstile', 'so', 'pow']
+13:44:07 [INFO] [reg-worker_0] [SentinelRunner] 调用 Node 生成 token, flow=authorize_continue
+13:44:08 [INFO] [reg-worker_0] [SentinelRunner] token 生成成功, flow=authorize_continue, 包含 turnstile=True, 包含 so=False, 字段: {'p': 633, 't': 132, 'c': 2104, 'id': 36, 'flow': 18}
+13:44:09 [INFO] [reg-worker_0] [OTP] 等待验证码：CaretakerBecherer9058@hotmail.com
+13:44:09 [INFO] [reg-worker_0] [Outlook] 开始轮询 CaretakerBecherer9058@hotmail.com 的收件箱（双协议 graph + imap），最长 90s, settle=5s...
+13:44:50 [WARNING] [reg-worker_0] [Outlook] imap 请求异常: Timeout: Failed to perform, curl: (28) Operation timed out after 30003 milliseconds with 137818 bytes received. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+13:44:50 [INFO] [reg-worker_0] [Outlook] 首次锁定 OTP=071178, ts=2026-06-15T05:44:05Z, subject='ChatGPT の一時的な認証コード', 等 5s 看是否有更晚邮件...
+13:44:50 [INFO] [reg-worker_0] [Outlook] 已锁定候选 OTP=071178，等 settle 中（剩余 settle ~5s, 总剩余 48s）...
+13:45:23 [WARNING] [reg-worker_0] [Outlook] graph 请求异常: Timeout: Failed to perform, curl: (28) Operation timed out after 30004 milliseconds with 0 bytes received. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+13:45:53 [WARNING] [reg-worker_0] [Outlook] imap 请求异常: Timeout: Failed to perform, curl: (28) Operation timed out after 30002 milliseconds with 0 bytes received. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+13:45:53 [INFO] [reg-worker_0] [Outlook] settle 完成，返回 OTP=071178, protocol=graph, subject='ChatGPT の一時的な認証コード'
+13:45:53 [INFO] [reg-worker_0] [步骤10] 提交邮箱验证码: 071178
+13:45:54 [INFO] [reg-worker_0] [步骤10] 验证码验证成功: about_you
+13:45:54 [INFO] [reg-worker_0] [Sentinel] 请求 sentinel token, flow=oauth_create_account
+13:45:55 [INFO] [reg-worker_0] [Sentinel] 获取 sentinel token 成功, persona=chatgpt-noauth
+13:45:55 [INFO] [reg-worker_0] [Sentinel] 需要 PoW: seed=0.5016629283503785, difficulty=061a80
+13:45:55 [INFO] [reg-worker_0] [Sentinel] 服务端要求项: ['turnstile', 'so', 'pow']
+13:45:55 [INFO] [reg-worker_0] [SentinelRunner] 调用 Node 生成 token, flow=oauth_create_account
+13:45:55 [INFO] [reg-worker_0] [SentinelRunner] token 生成成功, flow=oauth_create_account, 包含 turnstile=True, 包含 so=False, 字段: {'p': 577, 't': 132, 'c': 2104, 'id': 36, 'flow': 20}
+13:45:55 [INFO] [reg-worker_0] [步骤12] 提交用户信息, 名称: Yuvas Jsgkjky, 生日: 2000-01-01
+13:45:59 [INFO] [reg-worker_0] [步骤12] 创建接口返回成功，等待 OAuth 回调建立登录态
+13:45:59 [INFO] [reg-worker_0] [注册] 创建接口已通过：CaretakerBecherer9058@hotmail.com，继续完成 OAuth 回调
+13:46:00 [INFO] [reg-worker_0] [登录态] 完成 OAuth 回调并拉取 Token：CaretakerBecherer9058@hotmail.com (尝试 1/5)
+13:46:00 [INFO] [reg-worker_0] [OAuth回调] 跟随 continue_url 完成 OAuth 回调...
+13:46:04 [INFO] [reg-worker_0] [OAuth回调] 完成, 最终落点: https://chatgpt.com/login
+13:46:05 [INFO] [reg-worker_0] [Session] 拉取 ChatGPT session 信息...
+13:46:06 [INFO] [reg-worker_0] [Session] 成功，user_id=user-7ZWTeU6OiioDdpaTghO7HEZE, email=CaretakerBecherer9058@hotmail.com, plan=free, mfa=False
+13:46:06 [INFO] [reg-worker_0] [登录态] 已拿到 accessToken：CaretakerBecherer9058@hotmail.com
+13:46:07 [INFO] [reg-worker_0] [Codex] 开始授权：CaretakerBecherer9058@hotmail.com
+13:46:07 [INFO] [reg-worker_0] [Codex] 发起授权请求 (prompt=login, 尝试 1/3)
+13:46:08 [INFO] [reg-worker_0] [Codex] 落到 /choose-an-account，自动选择账号继续
+13:46:08 [INFO] [reg-worker_0] [Codex] 落到 /choose-an-account，自动选择账号继续
+13:46:08 [WARNING] [reg-worker_0] [Codex] 失败：CaretakerBecherer9058@hotmail.com，RuntimeError: [Codex] choose-an-account 页面无可提交字段，已 dump 到 D:\devApp\GPT协议注册-0419\tools\_choose_account_dump.html: url=https://auth.openai.com/choose-an-account
+13:46:08 [WARNING] [reg-worker_0] [Codex] 失败：CaretakerBecherer9058@hotmail.com，原因=RuntimeError: [Codex] choose-an-account 页面无可提交字段，已 dump 到 D:\devApp\GPT协议注册-0419\tools\_choose_account_dump.html: url=https://auth.openai.com/choose-an-account
+13:46:08 [INFO] [reg-worker_0] [Save] 账号已写入 DB, id=3, email=CaretakerBecherer9058@hotmail.com
+13:46:08 [INFO] [reg-worker_0] [Save] 批次归档目录: D:\devApp\GPT协议注册-0419\accounts\20260615-1个-3
+13:46:08 [INFO] [reg-worker_0] [完成] CaretakerBecherer9058@hotmail.com，账号ID=3，Token=eyJhbGciOiJSUzI1...
+13:46:08 [INFO] [reg-worker_0] [Flow] 跳过：CaretakerBecherer9058@hotmail.com，原因=ENABLE_FLOW_TRIGGER=False
+13:46:08 [INFO] [reg-worker_0] [Job 4] 成功: CaretakerBecherer9058@hotmail.com

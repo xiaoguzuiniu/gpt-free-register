@@ -280,6 +280,35 @@ def run_registration(
         else:
             logger.debug("已跳过 2FA 设置 (config.ENABLE_2FA=False)")
 
+        # ==================== 阶段 7.5: Codex OAuth（注册成功→拿回调/CPA凭证）====================
+        # 用全新干净 session 从头登录该邮箱，走 邮箱OTP→手机短信验证(接码)→选workspace
+        # →拿 code 的标准路径（不复用注册 session，避免撞 choose-an-account）。
+        # 产出：
+        #   1) codex_result["callback_url"]  命中 redirect_uri 的整条 Location（携带 code/state）
+        #   2) codex_result["file_path"]     CPA 可直接导入的 codex-{email}.json
+        codex_result = {"status": "skipped", "ok": False, "message": "未触发"}
+        try:
+            from core.codex_oauth import run_codex_oauth
+            codex_result = run_codex_oauth(email)
+        except Exception as exc:
+            codex_result = {
+                "status": "failed",
+                "ok": False,
+                "message": f"{type(exc).__name__}: {str(exc)[:180]}",
+            }
+
+        if codex_result.get("ok"):
+            logger.info(
+                f"[Codex] 成功：{email}，file={codex_result.get('file_path')}，"
+                f"callback={codex_result.get('callback_url')}"
+            )
+        elif codex_result.get("status") == "skipped":
+            logger.info(f"[Codex] 跳过：{email}，原因={codex_result.get('message')}")
+        else:
+            logger.warning(
+                f"[Codex] 失败：{email}，原因={codex_result.get('message')}"
+            )
+
         # ==================== 阶段8: 持久化账号 ====================
         from config import EMAIL_SOURCE
         account_id = save_account_data(
@@ -294,6 +323,7 @@ def run_registration(
                 "account": session_info.get("account"),
                 "expires": session_info.get("expires"),
                 "device_id": session.device_id,
+                "codex": codex_result,
             },
         )
 
@@ -326,18 +356,29 @@ def run_registration(
 
         return {"success": True, "email": email, "account_id": account_id,
                 "access_token": access_token, "totp_secret": totp_secret,
-                "flow": flow_result}
+                "flow": flow_result, "codex": codex_result}
 
     except Exception as e:
         logger.error(f"[失败] {email}: {type(e).__name__}: {e}")
         logger.debug("详细错误信息:", exc_info=True)
-        # 创建接口通过前失败：邮箱还可以下次继续尝试。
-        # 创建接口通过后失败：远端已消耗这个邮箱，直接废弃，避免重复注册。
+        # 邮箱状态回收策略，三种情况：
+        #   1. 账号已废（account_deactivated 等）：邮箱素材本身不可用，标 failed 直接剔除。
+        #   2. 创建接口通过后失败：远端已消耗这个邮箱，直接废弃，避免重复注册。
+        #   3. 创建接口通过前的普通失败：邮箱还可以下次继续尝试，放回 available。
+        from core.openai_auth import AccountUnusableError
+        account_dead = isinstance(e, AccountUnusableError)
         try:
             from config import EMAIL_SOURCE as _src
             if _src == "outlook" and email:
                 from core.outlook_client import release_account
-                if create_acknowledged:
+                if account_dead:
+                    release_account(
+                        email,
+                        status="failed",
+                        note=f"账号已废弃，邮箱不可用: {str(e)[:180]}",
+                    )
+                    logger.warning(f"[邮箱] {email} 账号已废弃，标记为 failed，不再重新注册")
+                elif create_acknowledged:
                     release_account(
                         email,
                         status="failed",
@@ -408,10 +449,29 @@ def main():
         and isinstance(r.get("flow"), dict)
         and r["flow"].get("status") == "skipped"
     )
+    codex_success_count = sum(
+        1 for r in results
+        if _is_success(r) and isinstance(r.get("codex"), dict) and r["codex"].get("ok")
+    )
+    codex_failed_count = sum(
+        1 for r in results
+        if _is_success(r)
+        and isinstance(r.get("codex"), dict)
+        and r["codex"].get("status") == "failed"
+    )
+    codex_skipped_count = sum(
+        1 for r in results
+        if _is_success(r)
+        and isinstance(r.get("codex"), dict)
+        and r["codex"].get("status") == "skipped"
+    )
     logger.info(f"[批量] 完成：成功 {success_count} / 尝试 {len(results)} / 目标 {args.count}")
     if success_count:
         logger.info(
             f"[批量] Flow：成功 {flow_success_count} / 失败 {flow_failed_count} / 跳过 {flow_skipped_count}"
+        )
+        logger.info(
+            f"[批量] Codex：成功 {codex_success_count} / 失败 {codex_failed_count} / 跳过 {codex_skipped_count}"
         )
     sys.exit(0 if success_count == args.count else 1)
 

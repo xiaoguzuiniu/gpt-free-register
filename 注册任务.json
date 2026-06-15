@@ -1,0 +1,54 @@
+[
+  {
+    "id": 1,
+    "job_uuid": "b85bdce3-20f0-4dfc-9e99-61027a42d204",
+    "email_source": "outlook",
+    "email": "JeanineWetzler930@outlook.com",
+    "status": "failed",
+    "error_message": "HTTP Error 403: ",
+    "log_file": "D:\\devApp\\GPT协议注册-0419\\注册日志\\b85bdce3-20f0-4dfc-9e99-61027a42d204.log",
+    "started_at": "2026-06-15T11:59:26",
+    "completed_at": "2026-06-15T12:00:58",
+    "account_id": null,
+    "created_at": "2026-06-15T11:59:26"
+  },
+  {
+    "id": 2,
+    "job_uuid": "a7af1728-229c-4e56-a275-654d1eeb8578",
+    "email_source": "outlook",
+    "email": "SandauBrannock979@hotmail.com",
+    "status": "success",
+    "error_message": null,
+    "log_file": "D:\\devApp\\GPT协议注册-0419\\注册日志\\a7af1728-229c-4e56-a275-654d1eeb8578.log",
+    "started_at": "2026-06-15T12:12:31",
+    "completed_at": "2026-06-15T12:14:20",
+    "account_id": 1,
+    "created_at": "2026-06-15T12:12:31"
+  },
+  {
+    "id": 3,
+    "job_uuid": "23584c9a-639e-4d10-86c4-acf378c24093",
+    "email_source": "outlook",
+    "email": "BotkinVavricka135@hotmail.com",
+    "status": "success",
+    "error_message": null,
+    "log_file": "D:\\devApp\\GPT协议注册-0419\\注册日志\\23584c9a-639e-4d10-86c4-acf378c24093.log",
+    "started_at": "2026-06-15T12:52:36",
+    "completed_at": "2026-06-15T12:54:42",
+    "account_id": 2,
+    "created_at": "2026-06-15T12:52:36"
+  },
+  {
+    "id": 4,
+    "job_uuid": "c355f95a-84d4-4bf6-ae4b-38ef2033e332",
+    "email_source": "outlook",
+    "email": "CaretakerBecherer9058@hotmail.com",
+    "status": "success",
+    "error_message": null,
+    "log_file": "D:\\devApp\\GPT协议注册-0419\\注册日志\\c355f95a-84d4-4bf6-ae4b-38ef2033e332.log",
+    "started_at": "2026-06-15T13:43:59",
+    "completed_at": "2026-06-15T13:46:08",
+    "account_id": 3,
+    "created_at": "2026-06-15T13:43:59"
+  }
+]
