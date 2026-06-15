@@ -30,6 +30,10 @@ _ACCOUNTS_TXT = _PROJECT_ROOT / "注册成功的邮箱.txt"
 _TOKENS_TXT = _PROJECT_ROOT / "注册成功的token.txt"
 _JOBS_JSON = _PROJECT_ROOT / "注册任务.json"
 _VIEWER_HTML = _PROJECT_ROOT / "accounts_viewer.html"
+_CODEX_DIR = _PROJECT_ROOT / "codex_accounts"
+# 导出状态单独存：{ "codex-邮箱-plan.json": {"exported_at": "...", "exported_count": N} }
+# 不污染 CPA 兼容的原文件
+_CODEX_EXPORT_STATE = _PROJECT_ROOT / "codex_导出状态.json"
 
 _LEGACY_SQLITE = _LEGACY_DATA_DIR / "registrations.db"
 _LEGACY_OUTLOOK_JSON = _LEGACY_DATA_DIR / "outlook_accounts.json"
@@ -715,6 +719,130 @@ def get_outlook_by_email(email: str) -> dict | None:
     with _LOCK:
         row = _find_by_email(_load_outlook(), email)
         return _decorate_outlook(row) if row else None
+
+
+# ============================================================
+# Codex 授权账号（来自 codex_accounts/codex-邮箱-plan.json）
+# ============================================================
+
+def _load_codex_export_state() -> dict:
+    """读导出状态映射 {filename: {exported_at, exported_count}}。不存在返回 {}。"""
+    data = _read_json(_CODEX_EXPORT_STATE, {})
+    return data if isinstance(data, dict) else {}
+
+
+def _save_codex_export_state(state: dict) -> None:
+    _write_json(_CODEX_EXPORT_STATE, state)
+
+
+def list_codex_accounts() -> list[dict]:
+    """
+    扫 codex_accounts/ 目录，每个 codex-*.json 是一条 CPA 兼容凭证。
+    返回带元信息的列表（含导出状态、文件大小、token 预览等）。
+    """
+    with _LOCK:
+        out = []
+        if not _CODEX_DIR.exists():
+            return out
+        export_state = _load_codex_export_state()
+        for path in sorted(_CODEX_DIR.glob("codex-*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                content = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            fname = path.name
+            es = export_state.get(fname) or {}
+            # 从文件名抽 email 和 plan：codex-{email}.json 或 codex-{email}-{plan}.json
+            stem = path.stem  # codex-邮箱-plan
+            without_prefix = stem[len("codex-"):] if stem.startswith("codex-") else stem
+            # plan 可能为空。简单做法：直接读 JSON 里的 email（更准），文件名只做 fallback
+            email = content.get("email") or ""
+            if not email:
+                # JSON 里 email 为空（旧 bug 产物），从文件名兜底
+                # 文件名格式 codex-{email}-{plan}.json，email 里可能有 - 但是常见邮箱不会有
+                # 简单做法：去掉末尾 -plan（如 -free / -plus / -team），剩下的当 email
+                parts = without_prefix.rsplit("-", 1)
+                if len(parts) == 2 and parts[1].lower() in ("free", "plus", "team", "pro", "enterprise"):
+                    email = parts[0]
+                else:
+                    email = without_prefix
+            # 推断 plan
+            plan = ""
+            if "-" in without_prefix:
+                tail = without_prefix.rsplit("-", 1)[-1].lower()
+                if tail in ("free", "plus", "team", "pro", "enterprise"):
+                    plan = tail
+            out.append({
+                "filename": fname,
+                "path": str(path),
+                "email": email,
+                "plan": plan,
+                "account_id": content.get("account_id", ""),
+                "type": content.get("type", "codex"),
+                "last_refresh": content.get("last_refresh", ""),
+                "expired": content.get("expired", ""),
+                "access_token_preview": (content.get("access_token", "") or "")[:32],
+                "size": path.stat().st_size,
+                "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="seconds"),
+                "exported_at": es.get("exported_at"),
+                "exported_count": es.get("exported_count", 0),
+            })
+        return out
+
+
+def read_codex_credential(filename: str) -> tuple[str, str]:
+    """
+    读取一个 codex-*.json 文件原始内容。
+    Returns: (content_string, filename)
+    抛 ValueError：文件名不合法（防目录穿越）/ 不存在。
+    """
+    with _LOCK:
+        # 防注入：只允许 codex-*.json 模式，不允许路径分隔符
+        if not filename.startswith("codex-") or not filename.endswith(".json"):
+            raise ValueError(f"非法文件名: {filename}")
+        if "/" in filename or "\\" in filename or ".." in filename:
+            raise ValueError(f"非法文件名: {filename}")
+        path = _CODEX_DIR / filename
+        if not path.exists() or not path.is_file():
+            raise ValueError(f"文件不存在: {filename}")
+        return path.read_text(encoding="utf-8"), filename
+
+
+def mark_codex_exported(filename: str) -> dict:
+    """
+    标记某个 codex 凭证已导出（导出计数 +1，记录最近导出时间）。
+    Returns: 该 filename 当前的导出状态记录。
+    """
+    with _LOCK:
+        state = _load_codex_export_state()
+        rec = state.get(filename) or {"exported_count": 0}
+        rec["exported_count"] = int(rec.get("exported_count", 0)) + 1
+        rec["exported_at"] = _now()
+        state[filename] = rec
+        _save_codex_export_state(state)
+        return rec
+
+
+def reset_codex_exported(filename: str) -> None:
+    """清掉某个 codex 凭证的导出状态（用户想重置时用）。"""
+    with _LOCK:
+        state = _load_codex_export_state()
+        if filename in state:
+            del state[filename]
+            _save_codex_export_state(state)
+
+
+def codex_accounts_summary() -> dict:
+    """codex 账号汇总：总数 / 已导出 / 未导出。"""
+    with _LOCK:
+        rows = list_codex_accounts()
+        total = len(rows)
+        exported = sum(1 for r in rows if r.get("exported_count", 0) > 0)
+        return {
+            "total": total,
+            "exported": exported,
+            "pending": total - exported,
+        }
 
 
 # ============================================================

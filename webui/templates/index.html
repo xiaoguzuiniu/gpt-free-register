@@ -123,6 +123,7 @@
 <nav>
   <button data-tab="register" class="active">注册</button>
   <button data-tab="accounts">账号</button>
+  <button data-tab="codex">Codex 授权</button>
   <button data-tab="outlook">邮箱池</button>
   <button data-tab="config">配置</button>
 </nav>
@@ -183,6 +184,46 @@
         <table>
           <thead><tr><th>ID</th><th>邮箱</th><th>来源</th><th>Token</th><th>2FA</th><th>创建时间</th><th>操作</th></tr></thead>
           <tbody id="accountsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ Codex 授权 ============ -->
+  <div id="tab-codex" class="hidden">
+    <section class="card">
+      <div class="toolbar">
+        <div>
+          <h2>Codex 授权账号</h2>
+          <p class="muted" style="font-size:12px;margin-top:4px;">
+            注册时自动跑 Codex 授权产出的 CPA 兼容凭证。点"下载 JSON"导出后可直接放到 CLIProxyAPI 的 <span class="mono">auths/</span> 目录使用。下载后会自动标记为已导出。
+          </p>
+        </div>
+        <div class="buttons">
+          <button class="btn" id="btnRefreshCodex">刷新</button>
+        </div>
+      </div>
+      <div class="body" style="display:flex;gap:14px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line);">
+        <div class="stat" style="background:#eef4ff;border-color:#c3d4fb;color:#1d4ed8;min-width:110px;padding:8px 12px;border-radius:6px;border:1px solid;">
+          <span style="font-size:11px;color:#475467;">总数</span>
+          <strong id="codexStatTotal" style="display:block;font-size:18px;margin-top:3px;">0</strong>
+        </div>
+        <div class="stat" style="background:#e9f7ef;border-color:#a7d4bc;color:#166534;min-width:110px;padding:8px 12px;border-radius:6px;border:1px solid;">
+          <span style="font-size:11px;color:#475467;">已导出</span>
+          <strong id="codexStatExported" style="display:block;font-size:18px;margin-top:3px;">0</strong>
+        </div>
+        <div class="stat" style="background:#fff7e6;border-color:#f3d99b;color:#92600a;min-width:110px;padding:8px 12px;border-radius:6px;border:1px solid;">
+          <span style="font-size:11px;color:#475467;">未导出</span>
+          <strong id="codexStatPending" style="display:block;font-size:18px;margin-top:3px;">0</strong>
+        </div>
+      </div>
+      <div class="toolbar" style="padding-top:10px;padding-bottom:10px;">
+        <div class="search"><input id="qCodex" placeholder="搜索邮箱、plan、account_id…"></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>邮箱</th><th>Plan</th><th>状态</th><th>Account ID</th><th>更新时间</th><th>过期时间</th><th>操作</th></tr></thead>
+          <tbody id="codexBody"></tbody>
         </table>
       </div>
     </section>
@@ -267,8 +308,9 @@ async function api(url, opts) {
 $$('nav button').forEach(b => b.addEventListener('click', () => {
   $$('nav button').forEach(x => x.classList.remove('active'));
   b.classList.add('active');
-  ['register','accounts','outlook','config'].forEach(t => $('#tab-'+t).classList.toggle('hidden', t !== b.dataset.tab));
+  ['register','accounts','codex','outlook','config'].forEach(t => $('#tab-'+t).classList.toggle('hidden', t !== b.dataset.tab));
   if (b.dataset.tab === 'accounts') loadAccounts();
+  if (b.dataset.tab === 'codex') loadCodex();
   if (b.dataset.tab === 'outlook') loadOutlook();
   if (b.dataset.tab === 'config') loadConfig();
   if (b.dataset.tab === 'register') refreshJobs();
@@ -419,6 +461,65 @@ $('#btnImport').addEventListener('click', async () => {
     loadOutlook(); loadSummary();
   } catch(e) { $('#importResult').innerHTML = `<div class="banner warn">${esc(e.message)}</div>`; }
   finally { $('#btnImport').disabled = false; }
+});
+
+// ---------- Codex 授权 ----------
+let CODEX = [];
+async function loadCodex() {
+  try {
+    const r = await api('/api/codex');
+    CODEX = r.accounts || [];
+    $('#codexStatTotal').textContent = r.summary?.total ?? 0;
+    $('#codexStatExported').textContent = r.summary?.exported ?? 0;
+    $('#codexStatPending').textContent = r.summary?.pending ?? 0;
+    renderCodex();
+  } catch(e) { showToast('加载 Codex 列表失败: ' + e.message); }
+}
+function renderCodex() {
+  const q = $('#qCodex').value.trim().toLowerCase();
+  const rows = CODEX.filter(r => !q || Object.values(r).join('\n').toLowerCase().includes(q));
+  $('#codexBody').innerHTML = rows.map(r => {
+    const exported = (r.exported_count || 0) > 0;
+    const statusBadge = exported
+      ? `<span class="pill status-used" title="导出 ${esc(r.exported_count)} 次，最近 ${esc(r.exported_at || '-')}">已导出</span>`
+      : `<span class="pill status-available">未导出</span>`;
+    return `
+    <tr>
+      <td><div class="main-cell">${esc(r.email || '-')}</div><div class="sub-cell mono">${esc(r.filename)}</div></td>
+      <td>${esc(r.plan || '-')}</td>
+      <td>${statusBadge}</td>
+      <td><span class="mono">${esc(r.account_id || '-')}</span></td>
+      <td class="muted">${esc(r.mtime || '-')}</td>
+      <td class="muted">${esc(r.expired || '-')}</td>
+      <td class="actions">
+        <button class="primary" data-codex-download="${esc(r.filename)}">下载 JSON</button>
+        ${exported ? `<button data-codex-reset="${esc(r.filename)}" title="重新标记为未导出">重置标记</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="muted">还没有 Codex 凭证。注册成功并跑通 Codex 授权后会自动出现。</td></tr>';
+}
+$('#qCodex').addEventListener('input', renderCodex);
+$('#btnRefreshCodex').addEventListener('click', loadCodex);
+$('#codexBody').addEventListener('click', async (e) => {
+  const dl = e.target.closest('[data-codex-download]');
+  if (dl) {
+    const fname = dl.dataset.codexDownload;
+    // 浏览器原生下载，触发后会自动 mark exported
+    window.location.href = `/api/codex/download/${encodeURIComponent(fname)}`;
+    // 给后端一点时间标记，然后刷新列表
+    setTimeout(loadCodex, 800);
+    return;
+  }
+  const rs = e.target.closest('[data-codex-reset]');
+  if (rs) {
+    const fname = rs.dataset.codexReset;
+    if (!confirm(`把 ${fname} 标记重置为未导出？`)) return;
+    try {
+      await api('/api/codex/reset-export', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({filename: fname}) });
+      showToast('已重置');
+      loadCodex();
+    } catch(err) { showToast('重置失败: ' + err.message); }
+  }
 });
 
 // ---------- 配置 ----------

@@ -12,7 +12,7 @@ Flask 本地控制台。
 """
 import logging
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 from core import db
 from core import registration_service as svc
@@ -111,6 +111,46 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": "email 为空"}), 400
         deleted = db.delete_outlook(email)
         return jsonify({"ok": True, "deleted": deleted})
+
+    # ----------------------------------------------------------
+    # Codex 授权账号（CPA 兼容凭证）
+    # ----------------------------------------------------------
+    @app.get("/api/codex")
+    def api_codex_list():
+        return jsonify({
+            "summary": db.codex_accounts_summary(),
+            "accounts": db.list_codex_accounts(),
+        })
+
+    @app.get("/api/codex/download/<path:filename>")
+    def api_codex_download(filename: str):
+        """
+        下载一个 CPA 兼容的 codex-*.json 文件，下载即标记为已导出（计数+1）。
+        前端通过浏览器原生下载触发（a 标签 / window.location）。
+        """
+        try:
+            content, fname = db.read_codex_credential(filename)
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 404
+        db.mark_codex_exported(fname)
+        return Response(
+            content,
+            mimetype="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+        )
+
+    @app.post("/api/codex/reset-export")
+    def api_codex_reset_export():
+        """清掉某个 codex 凭证的导出状态（重新标为未导出）。body {filename}。"""
+        data = request.get_json(silent=True) or {}
+        fname = (data.get("filename") or "").strip()
+        if not fname:
+            return jsonify({"ok": False, "error": "filename 为空"}), 400
+        try:
+            db.reset_codex_exported(fname)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        return jsonify({"ok": True})
 
     # ----------------------------------------------------------
     # 注册任务

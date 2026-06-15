@@ -50,5 +50,18 @@
     "completed_at": "2026-06-15T13:46:08",
     "account_id": 3,
     "created_at": "2026-06-15T13:43:59"
+  },
+  {
+    "id": 5,
+    "job_uuid": "cee27d41-f234-49cd-9597-836b4cc51b0e",
+    "email_source": "outlook",
+    "email": "TopCinelli449@outlook.com",
+    "status": "success",
+    "error_message": null,
+    "log_file": "D:\\devApp\\GPT协议注册-0419\\注册日志\\cee27d41-f234-49cd-9597-836b4cc51b0e.log",
+    "started_at": "2026-06-15T15:29:29",
+    "completed_at": "2026-06-15T15:30:59",
+    "account_id": 4,
+    "created_at": "2026-06-15T15:29:29"
   }
 ]
